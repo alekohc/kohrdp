@@ -26,3 +26,19 @@ func TestArgsOptionalFlags(t *testing.T) {
 		}
 	}
 }
+
+func TestDisconnectNoMatch(t *testing.T) {
+	n, err := Disconnect("nobody", "203.0.113.255")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if n != 0 {
+		t.Fatalf("expected 0 processes signalled, got %d", n)
+	}
+}
+
+func TestLiveKeyMungesUser(t *testing.T) {
+	if got, want := LiveKey("admin", "h"), `.\admin`+"\x00"+"h"; got != want {
+		t.Errorf("LiveKey = %q, want %q", got, want)
+	}
+}

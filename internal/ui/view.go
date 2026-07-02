@@ -136,6 +136,9 @@ func (m Model) footer() string {
 	case stateConfirmDelete:
 		return statusWarn.Render("Delete session '"+m.pend.name+"'?  ") +
 			mutedStyle.Render("y = yes · any other key = cancel")
+	case stateConfirmDisconnect:
+		return statusWarn.Render("Disconnect session '"+m.pend.name+"'?  ") +
+			mutedStyle.Render("y = yes · any other key = cancel")
 	case stateCertConfirm:
 		return statusWarn.Render("Ignore certificate errors for "+m.pend.session.Host+"?  ") +
 			mutedStyle.Render("y = ignore · n = enforce · esc = cancel")

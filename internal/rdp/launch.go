@@ -3,12 +3,9 @@
 package rdp
 
 import (
-	"bufio"
-	"io"
 	"os"
 	"os/exec"
 	"strings"
-	"sync"
 
 	"rdpkoh/internal/keyring"
 )
@@ -49,36 +46,28 @@ func Args(o Options) []string {
 }
 
 // Launch spawns xfreerdp3 detached (like the bash "&"), feeding the password to
-// its stdin so it never appears in the process table. The caller should clear
-// its copy of password once this returns.
-func Launch(o Options, password string, onOutput func(string), onDone func(error)) error {
+// its stdin so it never appears in the process table. Output is written straight
+// to logPath (truncated fresh) so it survives this process quitting and a later
+// instance can tail it. The caller should clear its copy of password once this
+// returns.
+func Launch(o Options, password, logPath string, onDone func(error)) error {
+	f, err := os.OpenFile(logPath, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0o600)
+	if err != nil {
+		return err
+	}
+
 	cmd := exec.Command("xfreerdp3", Args(o)...)
 	cmd.Stdin = strings.NewReader(password + "\n")
+	cmd.Stdout = f
+	cmd.Stderr = f
 
-	stdout, err := cmd.StdoutPipe()
-	if err != nil {
-		return err
-	}
-	stderr, err := cmd.StderrPipe()
-	if err != nil {
-		return err
-	}
 	if err := cmd.Start(); err != nil {
+		f.Close()
 		return err
 	}
+	f.Close() // the child holds its own dup'd fd
 
-	var wg sync.WaitGroup
-	wg.Add(2)
 	go func() {
-		defer wg.Done()
-		streamOutput(stdout, onOutput)
-	}()
-	go func() {
-		defer wg.Done()
-		streamOutput(stderr, onOutput)
-	}()
-	go func() {
-		wg.Wait()
 		err := cmd.Wait()
 		if onDone != nil {
 			onDone(err)
@@ -86,16 +75,4 @@ func Launch(o Options, password string, onOutput func(string), onDone func(error
 	}()
 
 	return nil
-}
-
-func streamOutput(r io.Reader, onOutput func(string)) {
-	if onOutput == nil {
-		io.Copy(io.Discard, r)
-		return
-	}
-
-	s := bufio.NewScanner(r)
-	for s.Scan() {
-		onOutput(s.Text())
-	}
 }

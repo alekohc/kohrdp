@@ -92,7 +92,7 @@ build artifact format.
 Install from a release tarball:
 
 ```sh
-make install-tarball TARBALL=dist/release/rdpkoh-0.1.0-linux-amd64.tar.gz
+make install-tarball TARBALL=dist/release/rdpkoh-<version>-linux-amd64.tar.gz
 ```
 
 ## Usage
@@ -171,9 +171,14 @@ The table shows:
 - last used time
 
 The right-hand pane shows recent FreeRDP logs for the selected session.
-Those logs are stored in temp files while the app is running, so long sessions do
-not keep growing the in-memory UI state. Temp log files are cleaned up when the
-app exits.
+`xfreerdp3` writes its output straight to a per-session log file under
+`/tmp/rdpkoh/`. On quit, log files are removed for sessions that have ended but
+kept for sessions still running, so a later launch can pick their logs back up.
+
+Status and logs survive restarting the app: on startup rdpkoh scans for running
+`xfreerdp3` processes and re-attaches to them, marking the matching sessions
+`active` and tailing their logs again. (Sessions launched by an older build that
+did not write to `/tmp/rdpkoh/` show as `active` but without historical logs.)
 
 Session status values:
 
@@ -190,6 +195,7 @@ Session status values:
 - `n`: new session
 - `e`: edit session
 - `d`: delete session
+- `x`: disconnect the selected running session (asks to confirm)
 - `c`: toggle certificate mode
 - `p`: clear saved password from keyring
 - `[` or `PgUp`: older logs for the selected session
@@ -207,7 +213,7 @@ Session status values:
 
 ## Notes
 
-- FreeRDP logs are captured and shown in the TUI.
+- FreeRDP logs are captured to `/tmp/rdpkoh/` and shown in the TUI.
 - The TUI follows the terminal's ANSI color palette.
-- FreeRDP itself is still launched with pipes, not a PTY, so its own native
-  tty-detection behavior is not enabled.
+- FreeRDP writes to a log file, not a PTY, so its own native tty-detection
+  behavior is not enabled.

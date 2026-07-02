@@ -71,12 +71,18 @@ func runDirectConnect(d directArgs) error {
 	}
 
 	ignore := d.IgnoreCert != nil && *d.IgnoreCert
+	logPath := os.DevNull
+	if d.Name != "" {
+		if err := os.MkdirAll(rdp.LogDir(), 0o700); err == nil {
+			logPath = rdp.LogPath(d.Name)
+		}
+	}
 	if err := rdp.Launch(rdp.Options{
 		User:       d.User,
 		Host:       d.Host,
 		IgnoreCert: ignore,
 		Multimon:   d.Multimon,
-	}, password, nil, nil); err != nil {
+	}, password, logPath, nil); err != nil {
 		password = ""
 		return err
 	}

@@ -2,8 +2,9 @@ package ui
 
 import (
 	"bufio"
-	"fmt"
 	"os"
+
+	"rdpkoh/internal/rdp"
 )
 
 type sessionLogFile struct {
@@ -12,32 +13,27 @@ type sessionLogFile struct {
 }
 
 func (m *Model) ensureLogFile(session string) (*sessionLogFile, error) {
-	lf, ok := m.logsBySession[session]
-	if ok {
+	if lf, ok := m.logsBySession[session]; ok {
 		return lf, nil
 	}
-
-	f, err := os.CreateTemp("", "rdpkoh-*.log")
-	if err != nil {
-		return nil, err
-	}
-	if err := f.Close(); err != nil {
+	if err := os.MkdirAll(rdp.LogDir(), 0o700); err != nil {
 		return nil, err
 	}
 
-	lf = &sessionLogFile{path: f.Name()}
+	path := rdp.LogPath(session)
+	lf := &sessionLogFile{path: path, lines: countLines(path)}
 	m.logsBySession[session] = lf
 	return lf, nil
 }
 
 func (lf *sessionLogFile) append(line string) error {
-	f, err := os.OpenFile(lf.path, os.O_APPEND|os.O_WRONLY, 0)
+	f, err := os.OpenFile(lf.path, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o600)
 	if err != nil {
 		return err
 	}
 	defer f.Close()
 
-	if _, err := fmt.Fprintln(f, line); err != nil {
+	if _, err := f.WriteString(line + "\n"); err != nil {
 		return err
 	}
 	lf.lines++
@@ -50,6 +46,9 @@ func (lf *sessionLogFile) readWindow(start, size int) ([]string, error) {
 	}
 
 	f, err := os.Open(lf.path)
+	if os.IsNotExist(err) {
+		return nil, nil
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -80,10 +79,33 @@ func (lf *sessionLogFile) remove() {
 	_ = os.Remove(lf.path)
 }
 
+func countLines(path string) int {
+	f, err := os.Open(path)
+	if err != nil {
+		return 0
+	}
+	defer f.Close()
+
+	n := 0
+	s := bufio.NewScanner(f)
+	for s.Scan() {
+		n++
+	}
+	return n
+}
+
+// Cleanup removes log files on quit, but keeps those of sessions that are still
+// running so the next instance can pick their logs back up.
 func (m Model) Cleanup() {
-	for _, lf := range m.logsBySession {
-		if lf != nil {
-			lf.remove()
+	live := rdp.Live()
+	for name, lf := range m.logsBySession {
+		if lf == nil {
+			continue
 		}
+		s := m.sessions[name]
+		if live[rdp.LiveKey(s.User, s.Host)] {
+			continue
+		}
+		lf.remove()
 	}
 }

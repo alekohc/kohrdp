@@ -6,11 +6,18 @@ import (
 	"strings"
 	"testing"
 
+	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/muesli/termenv"
 
 	"rdpkoh/internal/config"
+	"rdpkoh/internal/rdp"
 )
+
+func pressKey(m Model, r rune) Model {
+	updated, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{r}})
+	return updated.(Model)
+}
 
 func cleanupModelLogs(t *testing.T, m *Model) {
 	t.Helper()
@@ -182,21 +189,62 @@ func TestRDPDoneMarksSessionFailed(t *testing.T) {
 	}
 }
 
-func TestRDPActiveMarksSessionActive(t *testing.T) {
+func TestApplyLiveMarksReattachedActive(t *testing.T) {
 	m := New(map[string]config.Session{
 		"a": {User: "u", Host: "h1", LastUsed: 2},
 	})
-	m.sessionState["a"] = sessionStarting
+	cleanupModelLogs(t, &m)
+
+	m.applyLive(map[string]bool{rdp.LiveKey("u", "h1"): true})
 	m.reload()
 
-	updated, _ := m.Update(rdpActiveMsg{session: "a"})
-	m2 := updated.(Model)
-
-	if got := m2.sessionState["a"]; got != sessionActive {
+	if got := m.sessionState["a"]; got != sessionActive {
 		t.Fatalf("expected sessionActive, got %v", got)
 	}
-	if out := m2.View(); !strings.Contains(out, "active") {
+	if out := m.View(); !strings.Contains(out, "active") {
 		t.Errorf("expected active status in view:\n%s", out)
+	}
+}
+
+func TestApplyLiveMarksVanishedExited(t *testing.T) {
+	m := New(map[string]config.Session{
+		"a": {User: "u", Host: "h1", LastUsed: 2},
+	})
+	m.sessionState["a"] = sessionActive
+
+	m.applyLive(map[string]bool{})
+
+	if got := m.sessionState["a"]; got != sessionExited {
+		t.Fatalf("expected sessionExited, got %v", got)
+	}
+}
+
+func TestDisconnectAsksConfirmation(t *testing.T) {
+	m := New(map[string]config.Session{"a": {User: "u", Host: "h1"}})
+	m.sessionState["a"] = sessionActive
+	m.reload()
+
+	m = pressKey(m, 'x')
+	if m.state != stateConfirmDisconnect {
+		t.Fatalf("expected confirm state, got %v", m.state)
+	}
+	if out := m.View(); !strings.Contains(out, "Disconnect session 'a'") {
+		t.Errorf("expected disconnect prompt:\n%s", out)
+	}
+
+	m = pressKey(m, 'n') // any non-y cancels
+	if m.state != stateTable {
+		t.Fatalf("expected cancel back to table, got %v", m.state)
+	}
+}
+
+func TestDisconnectIdleSessionSkipsConfirm(t *testing.T) {
+	m := New(map[string]config.Session{"a": {User: "u", Host: "h1"}})
+	m.reload()
+
+	m = pressKey(m, 'x')
+	if m.state != stateTable {
+		t.Fatalf("expected to stay in table for idle session, got %v", m.state)
 	}
 }
 

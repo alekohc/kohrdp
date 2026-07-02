@@ -37,6 +37,7 @@ const (
 	stateTable state = iota
 	stateForm
 	stateConfirmDelete
+	stateConfirmDisconnect
 	stateCertConfirm
 	statePassword
 	stateSavePw
@@ -69,19 +70,12 @@ type Model struct {
 	width         int
 }
 
-type rdpLogMsg struct {
-	session string
-	line    string
-}
-
 type rdpDoneMsg struct {
 	session string
 	err     error
 }
 
-type rdpActiveMsg struct {
-	session string
-}
+type tickMsg struct{}
 
 // New builds the initial model from the loaded session map.
 func New(sessions map[string]config.Session) Model {
@@ -163,7 +157,10 @@ func (m *Model) setStatus(s string, style lipgloss.Style) {
 	m.stStyle = style
 }
 
-func (m Model) Init() tea.Cmd { return waitRDPMsg(m.rdpMsgCh) }
+func (m Model) Init() tea.Cmd {
+	// Scan for already-running sessions right away, then on every tick.
+	return tea.Batch(waitRDPMsg(m.rdpMsgCh), func() tea.Msg { return tickMsg{} })
+}
 
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
@@ -177,6 +174,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m.updateForm(msg)
 		case stateConfirmDelete:
 			return m.updateConfirmDelete(msg)
+		case stateConfirmDisconnect:
+			return m.updateConfirmDisconnect(msg)
 		case stateCertConfirm:
 			return m.updateCertConfirm(msg)
 		case statePassword:
@@ -186,13 +185,6 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		default:
 			return m.updateTable(msg)
 		}
-	case rdpLogMsg:
-		m.appendLog(msg.session, msg.line)
-		if m.sessionState[msg.session] == sessionStarting {
-			m.sessionState[msg.session] = sessionActive
-			m.reload()
-		}
-		return m, waitRDPMsg(m.rdpMsgCh)
 	case rdpDoneMsg:
 		if msg.err != nil {
 			m.sessionState[msg.session] = sessionFailed
@@ -201,20 +193,54 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		m.reload()
 		return m, waitRDPMsg(m.rdpMsgCh)
-	case rdpActiveMsg:
-		if m.sessionState[msg.session] == sessionStarting {
-			m.sessionState[msg.session] = sessionActive
-			m.reload()
+	case tickMsg:
+		m.refreshLiveStates()
+		for session := range m.logsBySession {
+			m.syncLogCount(session)
 		}
-		return m, nil
+		m.reload()
+		return m, tick()
 	}
 	return m, nil
 }
 
-func markSessionActive(session string) tea.Cmd {
-	return tea.Tick(500*time.Millisecond, func(time.Time) tea.Msg {
-		return rdpActiveMsg{session: session}
-	})
+func tick() tea.Cmd {
+	return tea.Tick(time.Second, func(time.Time) tea.Msg { return tickMsg{} })
+}
+
+// refreshLiveStates reconciles session status with the xfreerdp3 processes
+// actually running, so sessions started by a previous instance show as active.
+func (m *Model) refreshLiveStates() {
+	m.applyLive(rdp.Live())
+}
+
+func (m *Model) applyLive(live map[string]bool) {
+	for name, s := range m.sessions {
+		if live[rdp.LiveKey(s.User, s.Host)] {
+			m.sessionState[name] = sessionActive
+			m.ensureLogFile(name)
+		} else if st := m.sessionState[name]; st == sessionActive || st == sessionStarting {
+			m.sessionState[name] = sessionExited
+		}
+	}
+}
+
+// syncLogCount recounts a session's log file (the child writes it directly) and
+// keeps the view pinned to the bottom if it already was.
+func (m *Model) syncLogCount(session string) {
+	lf := m.logsBySession[session]
+	if lf == nil {
+		return
+	}
+	total := countLines(lf.path)
+	if total == lf.lines {
+		return
+	}
+	wasAtBottom := m.logScroll[session] >= m.maxLogScroll(lf.lines)
+	lf.lines = total
+	if wasAtBottom {
+		m.logScroll[session] = m.maxLogScroll(total)
+	}
 }
 
 func waitRDPMsg(ch <-chan tea.Msg) tea.Cmd {
@@ -305,6 +331,17 @@ func (m Model) updateTable(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		if n, ok := m.selected(); ok {
 			m.pend = pending{name: n.Name}
 			m.state = stateConfirmDelete
+		}
+		return m, nil
+	case key.Matches(msg, keys.Disconnect):
+		if n, ok := m.selected(); ok {
+			st := m.sessionState[n.Name]
+			if st != sessionActive && st != sessionStarting {
+				m.setStatus(n.Name+" is not connected", statusWarn)
+				return m, nil
+			}
+			m.pend = pending{name: n.Name, session: n.Session}
+			m.state = stateConfirmDisconnect
 		}
 		return m, nil
 	case key.Matches(msg, keys.Cert):
@@ -408,6 +445,25 @@ func (m Model) updateConfirmDelete(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
+// --- disconnect confirm ---
+
+func (m Model) updateConfirmDisconnect(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	switch msg.String() {
+	case "y", "Y":
+		count, err := rdp.Disconnect(m.pend.session.User, m.pend.session.Host)
+		switch {
+		case err != nil:
+			m.setStatus("disconnect failed: "+err.Error(), statusErr)
+		case count == 0:
+			m.setStatus(m.pend.name+" is not connected", statusWarn)
+		default:
+			m.setStatus("disconnecting "+m.pend.name, statusOK)
+		}
+	}
+	m.state = stateTable
+	return m, nil
+}
+
 // --- connect flow ---
 
 func (m Model) startConnect(n config.Named, multimon bool) (tea.Model, tea.Cmd) {
@@ -492,14 +548,22 @@ func (m Model) finishConnect() (tea.Model, tea.Cmd) {
 
 	ignore := m.pend.session.IgnoreCert != nil && *m.pend.session.IgnoreCert
 	sessionName := m.pend.name
-	err := rdp.Launch(rdp.Options{
+	lf, err := m.ensureLogFile(sessionName)
+	if err != nil {
+		m.pend.password = ""
+		m.sessionState[sessionName] = sessionFailed
+		m.setStatus("log file failed: "+err.Error(), statusErr)
+		m.reload()
+		m.state = stateTable
+		return m, nil
+	}
+
+	err = rdp.Launch(rdp.Options{
 		User:       m.pend.session.User,
 		Host:       m.pend.session.Host,
 		IgnoreCert: ignore,
 		Multimon:   m.pend.multimon,
-	}, m.pend.password, func(line string) {
-		m.rdpMsgCh <- rdpLogMsg{session: sessionName, line: line}
-	}, func(err error) {
+	}, m.pend.password, lf.path, func(err error) {
 		m.rdpMsgCh <- rdpDoneMsg{session: sessionName, err: err}
 	})
 
@@ -509,15 +573,11 @@ func (m Model) finishConnect() (tea.Model, tea.Cmd) {
 		m.setStatus("launch failed: "+err.Error(), statusErr)
 	} else {
 		m.sessionState[m.pend.name] = sessionStarting
-		if lf := m.logsBySession[m.pend.name]; lf != nil {
-			m.logScroll[m.pend.name] = m.maxLogScroll(lf.lines)
-		}
+		lf.lines = 0 // Launch truncated the log for the fresh connection
+		m.logScroll[m.pend.name] = 0
 		m.setStatus("connecting to "+m.pend.name, statusOK)
 	}
 	m.reload()
 	m.state = stateTable
-	if err != nil {
-		return m, nil
-	}
-	return m, markSessionActive(m.pend.name)
+	return m, nil
 }
