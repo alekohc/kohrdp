@@ -23,7 +23,7 @@ rdpkoh/
 ├── main.go              # entry: load config, start bubbletea
 ├── internal/
 │   ├── config/
-│   │   └── config.go    # load/save rdp-sessions.json, Session struct
+│   │   └── config.go    # load/save sessions.json, Session struct
 │   ├── keyring/
 │   │   └── keyring.go   # go-keyring wrappers
 │   ├── rdp/
@@ -36,9 +36,9 @@ rdpkoh/
 └── README.md
 ```
 
-## Data model (must match existing JSON)
+## Data model
 
-`~/.config/kokoarch/rdp-sessions.json` → `map[string]Session`
+`~/.config/rdpkoh/sessions.json` → `map[string]Session`
 
 ```go
 type Session struct {
@@ -136,7 +136,7 @@ to avoid fighting the renderer. If you must shell out interactively, use
 
 ## Migration / parity checklist
 
-- [ ] Reads existing `rdp-sessions.json` unchanged
+- [ ] Reads existing `sessions.json` unchanged
 - [ ] Recency ordering matches (`lastUsed` desc)
 - [ ] Cert prompt persists `ignore_cert` like the bash version
 - [ ] Password never appears in `ps`

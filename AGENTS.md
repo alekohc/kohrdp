@@ -32,7 +32,7 @@ The password is the asset. Protect it above convenience.
 
 - **Never pass the password on the command line** (`/p:`, args, or env that shows
   in `ps`). Feed it to xfreerdp via `/from-stdin` over a pipe.
-- **Never write the password to disk** — not in `rdp-sessions.json`, not in logs,
+- **Never write the password to disk** — not in `sessions.json`, not in logs,
   not in temp files. The only persistence is the system keyring via `go-keyring`.
 - **Never log secrets.** No password, no full keyring contents, in any output or
   debug line.
@@ -50,18 +50,18 @@ This is a launcher, not a platform. Simplicity is a feature.
 - This rule applies to the docs too: do not grow this repo into Marvin-sized
   governance. One `AGENTS.md`, one `CLAUDE.md` pointer, one `PLAN.md`.
 
-### Article III — Compatibility with launcher data
+### Article III — Config location & FreeRDP behavior
 
-The Go TUI replaces the old launcher workflow. Keep session data and launch
-behavior compatible where it matters, but the password backend is owned by this
-app.
+This app is now standalone; it no longer shares data with the old bash launcher.
+It owns its own config, and keeps launch behavior compatible with FreeRDP where
+it matters.
 
-- **Same config file**: `~/.config/kokoarch/rdp-sessions.json`, same schema
+- **Own config file**: `~/.config/rdpkoh/sessions.json`, schema unchanged
   (`user`, `host`, `lastUsed`, `ignore_cert`). See [PLAN.md](PLAN.md).
 - **Same username munge**: prefix `.\` when no `\` is present before passing the
   username to FreeRDP or deriving the keyring entry identity.
-- **Same xfreerdp flags** as the bash launcher (see PLAN.md). Changes to the flag
-  set are a deliberate decision, noted in the commit.
+- **Same xfreerdp flags** (see PLAN.md). Changes to the flag set are a deliberate
+  decision, noted in the commit.
 
 ### Article IV — Truthfulness
 

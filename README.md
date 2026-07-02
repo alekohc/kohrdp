@@ -2,8 +2,8 @@
 
 Terminal UI for picking and launching RDP sessions with `xfreerdp3`.
 
-It uses the same session file as the old bash launcher, while storing passwords
-through the OS keyring with `go-keyring`.
+It stores sessions in its own config file and keeps passwords in the OS keyring
+with `go-keyring`.
 
 ## Requirements
 
@@ -150,7 +150,7 @@ Import modes:
 Sessions are loaded from:
 
 ```text
-~/.config/kokoarch/rdp-sessions.json
+~/.config/rdpkoh/sessions.json
 ```
 
 Passwords are never stored in that JSON file. Import/export only moves session

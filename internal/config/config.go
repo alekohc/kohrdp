@@ -1,5 +1,5 @@
-// Package config loads and saves the RDP session list, staying byte-compatible
-// with the bash launcher's ~/.config/kokoarch/rdp-sessions.json.
+// Package config loads and saves the RDP session list from
+// ~/.config/rdpkoh/sessions.json.
 package config
 
 import (
@@ -10,9 +10,9 @@ import (
 	"sort"
 )
 
-// Session mirrors one entry in rdp-sessions.json. IgnoreCert is a pointer so the
-// three states the bash script relies on survive a round-trip: nil = never
-// asked, &true = ignore, &false = enforce.
+// Session mirrors one entry in sessions.json. IgnoreCert is a pointer so the
+// three states survive a round-trip: nil = never asked, &true = ignore,
+// &false = enforce.
 type Session struct {
 	User       string `json:"user"`
 	Host       string `json:"host"`
@@ -26,10 +26,9 @@ type Named struct {
 	Session
 }
 
-// Path returns the config file location, honouring the same path the bash
-// launcher uses.
+// Path returns the config file location.
 func Path() string {
-	return filepath.Join(os.Getenv("HOME"), ".config", "kokoarch", "rdp-sessions.json")
+	return filepath.Join(os.Getenv("HOME"), ".config", "rdpkoh", "sessions.json")
 }
 
 // Load reads the session map. A missing file is an empty map, not an error,
@@ -71,8 +70,7 @@ func LoadReaderBytes(data []byte) (map[string]Session, error) {
 	return sessions, nil
 }
 
-// Save writes the session map atomically (write temp, rename), the same way the
-// bash launcher does via "$RDP_CONFIG.tmp" && mv.
+// Save writes the session map atomically (write temp, rename).
 func Save(sessions map[string]Session) error {
 	return SaveTo(Path(), sessions)
 }
