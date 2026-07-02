@@ -20,7 +20,7 @@ func TestArgsMatchesBashFlags(t *testing.T) {
 func TestArgsOptionalFlags(t *testing.T) {
 	args := Args(Options{User: `DOMAIN\u`, Host: "h", WMClass: "work", IgnoreCert: true, Multimon: true})
 	joined := strings.Join(args, " ")
-	for _, want := range []string{`/u:DOMAIN\u`, "/wm-class:kokoarch-rdp-work", "/multimon", "/cert:ignore"} {
+	for _, want := range []string{`/u:DOMAIN\u`, "/wm-class:rdpkoh-work", "/multimon", "/cert:ignore"} {
 		if !strings.Contains(joined, want) {
 			t.Errorf("Args missing %q in: %s", want, joined)
 		}

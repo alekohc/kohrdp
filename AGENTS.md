@@ -1,4 +1,4 @@
-# kokoarch-rdp — Constitution & Rules
+# rdpkoh — Constitution & Rules
 
 Single source of truth for this repo, for humans and agents alike. Any other
 instruction file (`CLAUDE.md`, `.cursorrules`, `.github/copilot-instructions.md`)
@@ -12,7 +12,7 @@ instruction file (`CLAUDE.md`, `.cursorrules`, `.github/copilot-instructions.md`
 
 ## Preamble
 
-`kokoarch-rdp` is a terminal UI for launching RDP sessions. It handles
+`rdpkoh` is a terminal UI for launching RDP sessions. It handles
 **credentials** and spawns a **remote-desktop client**, often from untrusted
 networks. The rules exist so that a momentary convenience never becomes a
 credential leak, and so the tool stays small enough that one person can hold it
@@ -52,7 +52,7 @@ This is a launcher, not a platform. Simplicity is a feature.
 
 ### Article III — Compatibility with launcher data
 
-The Go TUI replaces `kokoarch/bin/kokoarch-rdp`. Keep session data and launch
+The Go TUI replaces the old launcher workflow. Keep session data and launch
 behavior compatible where it matters, but the password backend is owned by this
 app.
 
@@ -93,7 +93,35 @@ Approved baseline:
 Anything outside this list needs a one-line justification in the commit: what it
 solves, and why inline isn't viable.
 
-### Article VII — Amendments
+### Article VII — Versioning & Releases
+
+This repo will live on GitHub and cut tagged releases. Versioning must stay
+simple and predictable.
+
+- **`VERSION` is the base release version.** Keep it in `major.minor.patch`
+  form, for example `0.1.0`.
+- **`main.version` comes from the build.** Local builds use `VERSION` unless an
+  exact git tag overrides it via the `Makefile`.
+- **Bump `VERSION` deliberately.** Patch = fixes, minor = new user-facing
+  features, major = breaking CLI/config/behavior changes.
+- **Tag releases with `vX.Y.Z` on GitHub.** The git tag should match the release
+  version in `VERSION` except for the `v` prefix.
+- **Release artifacts come from the Makefile.** Use `make check` first, then
+  `make release-tarball`. Use `make dist-arch` for the Arch package source.
+- **Document release-impacting changes.** If a change affects install, versioning,
+  packaging, import/export, CLI flags, or keyring behavior, update `README.md`
+  and `PLAN.md` in the same change.
+
+When asked how to cut a release, use this flow:
+1. Update `VERSION`.
+2. Run `make check`.
+3. Run `make release-tarball`.
+4. Run `make dist-arch` if needed.
+5. Commit once explicitly approved.
+6. Create tag `vX.Y.Z` once explicitly approved.
+7. Push/tag/create GitHub release once explicitly approved.
+
+### Article VIII — Amendments
 
 Change this file deliberately, not by drive-by edit. An amendment states:
 1. What prompted it (what went wrong, or what we learned).

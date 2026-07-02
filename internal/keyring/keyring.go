@@ -8,7 +8,7 @@ import (
 	gokeyring "github.com/zalando/go-keyring"
 )
 
-const service = "kokoarch-rdp"
+const service = "rdpkoh"
 
 // MungeUser replicates the bash launcher: if the username has no backslash,
 // prefix ".\". Keyring entries were stored against the munged name, so every

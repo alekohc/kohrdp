@@ -1,8 +1,11 @@
-# Build plan — kokoarch-rdp (Go TUI)
+# Build plan — rdpkoh (Go TUI)
 
-A standalone Go TUI to replace the `kokoarch-rdp` bash launcher. It keeps the
+A standalone Go TUI for launching RDP sessions. It keeps the
 same JSON session data and FreeRDP launch behavior, while using `go-keyring` for
 password storage.
+
+The binary also supports a direct compatibility CLI mode for launching one
+connection without opening the TUI.
 
 ## Stack
 
@@ -15,7 +18,7 @@ password storage.
 ## Repo layout
 
 ```
-kokoarch-rdp/
+rdpkoh/
 ├── go.mod
 ├── main.go              # entry: load config, start bubbletea
 ├── internal/
@@ -61,7 +64,7 @@ Existing saved session definitions MUST keep working.
    service name using the munged user and host as the entry identity.
 3. **xfreerdp3 invocation** — port verbatim:
    ```
-   /u:<user> /from-stdin /v:<host> [/wm-class:kokoarch-rdp-<class>] [/cert:ignore]
+   /u:<user> /from-stdin /v:<host> [/wm-class:rdpkoh-<class>] [/cert:ignore]
    +auto-reconnect +clipboard +fonts /sound /dynamic-resolution
    /gfx /bpp:32 /drive:Downloads,$HOME/Downloads
    ```
@@ -116,14 +119,20 @@ to avoid fighting the renderer. If you must shell out interactively, use
 
 - `make build`
 - `make install`
+- `make install-tarball TARBALL=...`
 - `make check`
 - `make release-tarball` for a generic versioned binary tarball
 - `make dist-arch` then `cd dist/arch && makepkg -si` for Arch Linux packaging
-- Or manually: `go build -o kokoarch-rdp .`
-- Install to `~/.local/bin` and keep the command name `kokoarch-rdp` so existing
+- Or manually: `go build -o rdpkoh .`
+- Install to `~/.local/bin` and keep the command name `rdpkoh` so existing
   shell usage keeps working.
-- `kokoarch-rdp --export FILE` and `kokoarch-rdp --import FILE` move session
-  definitions between machines without exporting passwords.
+- `rdpkoh --export FILE` / `--export -` and `rdpkoh --import FILE`
+  / `--import -` move session definitions between machines without exporting
+  passwords.
+- `--import-mode replace|merge` controls whether import replaces the current
+  config or overlays it.
+- `rdpkoh USER HOST [--ignore-cert] [--name NAME] [--multimon]` launches a
+  direct connection in compatibility mode.
 
 ## Migration / parity checklist
 

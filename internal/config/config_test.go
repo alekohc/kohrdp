@@ -1,6 +1,7 @@
 package config
 
 import (
+	"bytes"
 	"path/filepath"
 	"testing"
 )
@@ -25,5 +26,25 @@ func TestSaveToAndLoadFromRoundTrip(t *testing.T) {
 	}
 	if got := out["work"]; got.User != in["work"].User || got.Host != in["work"].Host || got.LastUsed != in["work"].LastUsed || got.IgnoreCert == nil || *got.IgnoreCert != true {
 		t.Fatalf("LoadFrom() = %#v, want %#v", got, in["work"])
+	}
+}
+
+func TestSaveWriterAndLoadReaderRoundTrip(t *testing.T) {
+	ignore := false
+	in := map[string]Session{
+		"home": {User: "me", Host: "server", IgnoreCert: &ignore},
+	}
+
+	var buf bytes.Buffer
+	if err := SaveWriter(&buf, in); err != nil {
+		t.Fatalf("SaveWriter() error = %v", err)
+	}
+
+	out, err := LoadReader(&buf)
+	if err != nil {
+		t.Fatalf("LoadReader() error = %v", err)
+	}
+	if got := out["home"]; got.User != in["home"].User || got.Host != in["home"].Host || got.IgnoreCert == nil || *got.IgnoreCert != false {
+		t.Fatalf("LoadReader() = %#v, want %#v", got, in["home"])
 	}
 }

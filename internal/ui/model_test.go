@@ -9,7 +9,7 @@ import (
 	"github.com/charmbracelet/lipgloss"
 	"github.com/muesli/termenv"
 
-	"kokoarch-rdp/internal/config"
+	"rdpkoh/internal/config"
 )
 
 func cleanupModelLogs(t *testing.T, m *Model) {
@@ -182,5 +182,24 @@ func TestRDPActiveMarksSessionActive(t *testing.T) {
 	}
 	if out := m2.View(); !strings.Contains(out, "active") {
 		t.Errorf("expected active status in view:\n%s", out)
+	}
+}
+
+func TestCleanupRemovesLogFiles(t *testing.T) {
+	m := New(map[string]config.Session{
+		"a": {User: "u", Host: "h1", LastUsed: 2},
+	})
+	m.appendLog("a", "alpha")
+	lf := m.logsBySession["a"]
+	if lf == nil {
+		t.Fatal("expected log file to exist")
+	}
+	if _, err := os.Stat(lf.path); err != nil {
+		t.Fatalf("expected log file on disk: %v", err)
+	}
+
+	m.Cleanup()
+	if _, err := os.Stat(lf.path); !os.IsNotExist(err) {
+		t.Fatalf("expected log file removed, got err=%v", err)
 	}
 }

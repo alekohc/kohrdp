@@ -10,7 +10,7 @@ import (
 	"strings"
 	"sync"
 
-	"kokoarch-rdp/internal/keyring"
+	"rdpkoh/internal/keyring"
 )
 
 // Options mirrors the bash launcher's tunable flags.
@@ -31,7 +31,7 @@ func Args(o Options) []string {
 		"/v:" + o.Host,
 	}
 	if o.WMClass != "" {
-		args = append(args, "/wm-class:kokoarch-rdp-"+o.WMClass)
+		args = append(args, "/wm-class:rdpkoh-"+o.WMClass)
 	}
 	if o.Multimon {
 		args = append(args, "/multimon")

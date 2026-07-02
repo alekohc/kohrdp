@@ -4,6 +4,7 @@ package config
 
 import (
 	"encoding/json"
+	"io"
 	"os"
 	"path/filepath"
 	"sort"
@@ -38,6 +39,9 @@ func Load() (map[string]Session, error) {
 }
 
 func LoadFrom(path string) (map[string]Session, error) {
+	if path == "-" {
+		return LoadReader(os.Stdin)
+	}
 	data, err := os.ReadFile(path)
 	if os.IsNotExist(err) {
 		return map[string]Session{}, nil
@@ -45,7 +49,22 @@ func LoadFrom(path string) (map[string]Session, error) {
 	if err != nil {
 		return nil, err
 	}
+	return LoadReaderBytes(data)
+}
+
+func LoadReader(r io.Reader) (map[string]Session, error) {
+	data, err := io.ReadAll(r)
+	if err != nil {
+		return nil, err
+	}
+	return LoadReaderBytes(data)
+}
+
+func LoadReaderBytes(data []byte) (map[string]Session, error) {
 	sessions := map[string]Session{}
+	if len(data) == 0 {
+		return sessions, nil
+	}
 	if err := json.Unmarshal(data, &sessions); err != nil {
 		return nil, err
 	}
@@ -59,10 +78,13 @@ func Save(sessions map[string]Session) error {
 }
 
 func SaveTo(path string, sessions map[string]Session) error {
+	if path == "-" {
+		return SaveWriter(os.Stdout, sessions)
+	}
 	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
 		return err
 	}
-	data, err := json.MarshalIndent(sessions, "", "  ")
+	data, err := marshal(sessions)
 	if err != nil {
 		return err
 	}
@@ -71,6 +93,26 @@ func SaveTo(path string, sessions map[string]Session) error {
 		return err
 	}
 	return os.Rename(tmp, path)
+}
+
+func SaveWriter(w io.Writer, sessions map[string]Session) error {
+	data, err := marshal(sessions)
+	if err != nil {
+		return err
+	}
+	_, err = w.Write(data)
+	return err
+}
+
+func marshal(sessions map[string]Session) ([]byte, error) {
+	data, err := json.MarshalIndent(sessions, "", "  ")
+	if err != nil {
+		return nil, err
+	}
+	if len(data) == 0 || data[len(data)-1] != '\n' {
+		data = append(data, '\n')
+	}
+	return data, nil
 }
 
 // SortedByRecency returns sessions most-recently-used first, matching the bash

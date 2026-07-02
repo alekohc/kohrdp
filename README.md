@@ -1,4 +1,4 @@
-# kokoarch-rdp
+# rdpkoh
 
 Terminal UI for picking and launching RDP sessions with `xfreerdp3`.
 
@@ -7,17 +7,36 @@ through the OS keyring with `go-keyring`.
 
 ## Requirements
 
-- Go 1.22+
+- Go 1.24+
+- `make`
+- `tar`
+- `install`
 - `xfreerdp3`
-- Linux or macOS desktop with a working keyring
+- Linux or macOS desktop with a working OS keyring
+
+Linux prerequisites typically mean:
+
+- FreeRDP with the `xfreerdp3` binary available in `PATH`
+- a Secret Service-compatible keyring session available to your desktop login
+
+macOS prerequisites typically mean:
+
+- FreeRDP installed with `xfreerdp3` available in `PATH`
+- access to the macOS Keychain
+
+Build and packaging prerequisites:
+
+- `make install` / `make build`: Go toolchain only
+- `make release-tarball`: Go toolchain plus `tar`
+- `make dist-arch`: Arch Linux tooling if you intend to use `makepkg`
 
 ## Install
 
 Build once:
 
 ```sh
-go build -o kokoarch-rdp .
-install -Dm755 kokoarch-rdp "$HOME/.local/bin/kokoarch-rdp"
+go build -o rdpkoh .
+install -Dm755 rdpkoh "$HOME/.local/bin/rdpkoh"
 ```
 
 Or use the Makefile:
@@ -26,7 +45,7 @@ Or use the Makefile:
 make install
 ```
 
-By default that installs to `~/.local/bin/kokoarch-rdp`.
+By default that installs to `~/.local/bin/rdpkoh`.
 
 ## Development
 
@@ -35,6 +54,7 @@ Useful targets:
 ```sh
 make build
 make install
+make install-tarball TARBALL=...
 make test
 make vet
 make fmt
@@ -42,6 +62,18 @@ make check
 make dist-arch
 make release-tarball
 ```
+
+The base app version comes from the `VERSION` file.
+
+Release/version workflow:
+
+```sh
+make check
+make release-tarball
+```
+
+If you are preparing a real release, bump `VERSION` first. Tagged GitHub
+releases should use `vX.Y.Z` tags matching the `VERSION` file.
 
 `make dist-arch` prepares an Arch `makepkg` directory under `dist/arch/`.
 From there:
@@ -57,31 +89,63 @@ That packaging flow is for Arch Linux only. It is not usable on macOS.
 That is the generic packaging path and is usable on both Linux and macOS as a
 build artifact format.
 
+Install from a release tarball:
+
+```sh
+make install-tarball TARBALL=dist/release/rdpkoh-0.1.0-linux-amd64.tar.gz
+```
+
 ## Usage
 
 Run:
 
 ```sh
-kokoarch-rdp
+rdpkoh
 ```
+
+Old direct-connect style is also supported:
+
+```sh
+rdpkoh administrator 192.168.11.10 --ignore-cert --name tp-test
+```
+
+That launches a connection directly without opening the TUI. If the password is
+not already in the keyring, the app prompts in the terminal and can save it.
 
 Show the installed version:
 
 ```sh
-kokoarch-rdp --version
+rdpkoh --version
 ```
 
 Export sessions to move them to another machine:
 
 ```sh
-kokoarch-rdp --export sessions.json
+rdpkoh --export sessions.json
+```
+
+Export to stdout:
+
+```sh
+rdpkoh --export -
 ```
 
 Import sessions from another machine:
 
 ```sh
-kokoarch-rdp --import sessions.json
+rdpkoh --import sessions.json
 ```
+
+Import from stdin:
+
+```sh
+rdpkoh --import -
+```
+
+Import modes:
+
+- `--import-mode replace`: replace the current session config
+- `--import-mode merge`: merge imported sessions into the current config
 
 Sessions are loaded from:
 
@@ -93,6 +157,8 @@ Passwords are never stored in that JSON file. Import/export only moves session
 definitions. Passwords stay in the system keyring.
 
 The app uses the OS keyring via `go-keyring`.
+
+License: MIT. See [`LICENSE`](LICENSE).
 
 ## Main View
 
@@ -106,7 +172,8 @@ The table shows:
 
 The right-hand pane shows recent FreeRDP logs for the selected session.
 Those logs are stored in temp files while the app is running, so long sessions do
-not keep growing the in-memory UI state.
+not keep growing the in-memory UI state. Temp log files are cleaned up when the
+app exits.
 
 Session status values:
 

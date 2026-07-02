@@ -12,9 +12,9 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 
-	"kokoarch-rdp/internal/config"
-	"kokoarch-rdp/internal/keyring"
-	"kokoarch-rdp/internal/rdp"
+	"rdpkoh/internal/config"
+	"rdpkoh/internal/keyring"
+	"rdpkoh/internal/rdp"
 )
 
 type state int

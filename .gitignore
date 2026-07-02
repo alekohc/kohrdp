@@ -1,5 +1,5 @@
-# Compiled binary (Makefile: BIN := kokoarch-rdp)
-/kokoarch-rdp
+# Compiled binary (Makefile: BIN := rdpkoh)
+/rdpkoh
 
 # Build/release artifacts (make dist-arch, make release-tarball)
 /dist/

@@ -1,6 +1,6 @@
-# kokoarch-rdp
+# rdpkoh
 
-A Go TUI for launching RDP sessions, replacing the `kokoarch-rdp` bash launcher.
+A Go TUI for launching RDP sessions.
 
 ## Read first
 

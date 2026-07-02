@@ -17,7 +17,7 @@ func (m *Model) ensureLogFile(session string) (*sessionLogFile, error) {
 		return lf, nil
 	}
 
-	f, err := os.CreateTemp("", "kokoarch-rdp-*.log")
+	f, err := os.CreateTemp("", "rdpkoh-*.log")
 	if err != nil {
 		return nil, err
 	}
@@ -78,4 +78,12 @@ func (lf *sessionLogFile) remove() {
 		return
 	}
 	_ = os.Remove(lf.path)
+}
+
+func (m Model) Cleanup() {
+	for _, lf := range m.logsBySession {
+		if lf != nil {
+			lf.remove()
+		}
+	}
 }

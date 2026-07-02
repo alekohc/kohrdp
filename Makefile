@@ -1,10 +1,12 @@
-BIN := kokoarch-rdp
+BIN := rdpkoh
 PREFIX ?= $(HOME)/.local
 BINDIR ?= $(PREFIX)/bin
-VERSION ?= $(shell git describe --tags --always --dirty 2>/dev/null || printf dev)
+BASE_VERSION := $(shell tr -d '\n' < VERSION)
+VERSION ?= $(shell git describe --tags --exact-match 2>/dev/null || printf $(BASE_VERSION))
 LDFLAGS := -X main.version=$(VERSION)
+TARBALL ?=
 
-.PHONY: build install uninstall test vet fmt check dist-arch release-tarball
+.PHONY: build install uninstall install-tarball test vet fmt check dist-arch release-tarball
 
 build:
 	go build -ldflags "$(LDFLAGS)" -o $(BIN) .
@@ -14,6 +16,13 @@ install: build
 
 uninstall:
 	rm -f "$(BINDIR)/$(BIN)"
+
+install-tarball:
+	test -n "$(TARBALL)"
+	rm -rf /tmp/opencode/$(BIN)-install
+	mkdir -p /tmp/opencode/$(BIN)-install
+	tar -xzf "$(TARBALL)" -C /tmp/opencode/$(BIN)-install
+	install -Dm755 /tmp/opencode/$(BIN)-install/$(BIN)-*/$(BIN) "$(BINDIR)/$(BIN)"
 
 test:
 	go test ./...
