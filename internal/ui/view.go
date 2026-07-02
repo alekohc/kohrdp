@@ -39,7 +39,7 @@ func (m Model) tableAndLogsView() string {
 }
 
 func (m Model) logView() string {
-	name, logs := m.selectedLogs()
+	name, logs, scroll, maxScroll := m.selectedLogs()
 	title := "FreeRDP logs"
 	if name != "" {
 		title += " - " + name
@@ -52,10 +52,22 @@ func (m Model) logView() string {
 			rendered[i] = renderLogLine(line)
 		}
 		body = strings.Join(rendered, "\n")
+		if len(logs) < logVisibleLines {
+			body += strings.Repeat("\n", logVisibleLines-len(logs))
+		}
+	} else {
+		body += strings.Repeat("\n", logVisibleLines-1)
 	}
 
-	content := titleStyle.Copy().UnsetBackground().Foreground(colorAccent).Render(title) + "\n" + body
+	meta := mutedStyle.Render("[ and ] scroll")
+	if maxScroll > 0 {
+		meta = mutedStyle.Render(logScrollLabel(scroll, maxScroll) + "  [ and ] scroll")
+	}
+
+	content := titleStyle.Copy().UnsetBackground().Foreground(colorAccent).Render(title)
+	content += "\n" + meta + "\n" + body
 	style := logBoxStyle
+	style = style.Height(logVisibleLines + 2)
 	if m.width > 0 {
 		tableWidth := lipgloss.Width(m.table.View())
 		logWidth := m.width - tableWidth - 6
@@ -68,12 +80,38 @@ func (m Model) logView() string {
 	return style.Render(content)
 }
 
-func (m Model) selectedLogs() (string, []string) {
+func (m Model) selectedLogs() (string, []string, int, int) {
 	n, ok := m.selected()
 	if !ok {
-		return "", nil
+		return "", nil, 0, 0
 	}
-	return n.Name, m.logsBySession[n.Name]
+	lf := m.logsBySession[n.Name]
+	if lf == nil {
+		return n.Name, nil, 0, 0
+	}
+	scroll := m.logScroll[n.Name]
+	maxScroll := m.maxLogScroll(lf.lines)
+	if scroll > maxScroll {
+		scroll = maxScroll
+	}
+	logs, err := lf.readWindow(scroll, logVisibleLines)
+	if err != nil {
+		return n.Name, []string{"[ERROR] failed to read log file: " + err.Error()}, scroll, maxScroll
+	}
+	return n.Name, logs, scroll, maxScroll
+}
+
+func logScrollLabel(scroll, max int) string {
+	if max == 0 {
+		return "bottom"
+	}
+	if scroll == 0 {
+		return "top"
+	}
+	if scroll >= max {
+		return "bottom"
+	}
+	return "middle"
 }
 
 func renderLogLine(line string) string {

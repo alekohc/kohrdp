@@ -21,5 +21,5 @@ constitution, and conventions — read it before doing any work here. This
 
 - Password never on the command line (`/from-stdin`, never `/p:`), never on disk
   — keyring only.
-- Stay compatible with the bash launcher's JSON and keyring entries.
+- Stay compatible with the launcher's JSON schema and FreeRDP behavior.
 - Keep it small. A launcher, not a platform.

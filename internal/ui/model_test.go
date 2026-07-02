@@ -1,6 +1,8 @@
 package ui
 
 import (
+	"errors"
+	"os"
 	"strings"
 	"testing"
 
@@ -9,6 +11,17 @@ import (
 
 	"kokoarch-rdp/internal/config"
 )
+
+func cleanupModelLogs(t *testing.T, m *Model) {
+	t.Helper()
+	t.Cleanup(func() {
+		for _, lf := range m.logsBySession {
+			if lf != nil {
+				_ = os.Remove(lf.path)
+			}
+		}
+	})
+}
 
 func TestViewRenders(t *testing.T) {
 	yes := true
@@ -42,12 +55,13 @@ func TestLogViewRendersRecentLines(t *testing.T) {
 		"a": {User: "u", Host: "h1", LastUsed: 2},
 		"b": {User: "u", Host: "h2", LastUsed: 1},
 	})
-	for i := 0; i < maxLogs+2; i++ {
+	cleanupModelLogs(t, &m)
+	for i := 0; i < logVisibleLines+2; i++ {
 		m.appendLog("a", "line")
 	}
 
-	if len(m.logsBySession["a"]) != maxLogs {
-		t.Fatalf("expected %d logs, got %d", maxLogs, len(m.logsBySession["a"]))
+	if got := m.logsBySession["a"].lines; got != logVisibleLines+2 {
+		t.Fatalf("expected %d logs, got %d", logVisibleLines+2, got)
 	}
 	if out := m.View(); !strings.Contains(out, "line") {
 		t.Errorf("log view missing lines:\n%s", out)
@@ -59,6 +73,7 @@ func TestLogViewTracksSelectedSession(t *testing.T) {
 		"a": {User: "u", Host: "h1", LastUsed: 2},
 		"b": {User: "u", Host: "h2", LastUsed: 1},
 	})
+	cleanupModelLogs(t, &m)
 	m.appendLog("a", "alpha")
 	m.appendLog("b", "beta")
 
@@ -69,6 +84,33 @@ func TestLogViewTracksSelectedSession(t *testing.T) {
 	m.table.SetCursor(1)
 	if out := m.View(); !strings.Contains(out, "beta") || strings.Contains(out, "alpha") {
 		t.Errorf("selected log view mismatch after moving cursor:\n%s", out)
+	}
+}
+
+func TestSelectedLogsRespectsScroll(t *testing.T) {
+	m := New(map[string]config.Session{
+		"a": {User: "u", Host: "h1", LastUsed: 2},
+	})
+	cleanupModelLogs(t, &m)
+	for i := 0; i < logVisibleLines+3; i++ {
+		m.appendLog("a", strings.Repeat("x", i+1))
+	}
+
+	_, logs, scroll, maxScroll := m.selectedLogs()
+	if scroll != maxScroll {
+		t.Fatalf("expected autoscroll to bottom, got scroll=%d max=%d", scroll, maxScroll)
+	}
+	if len(logs) != logVisibleLines {
+		t.Fatalf("expected %d visible log lines, got %d", logVisibleLines, len(logs))
+	}
+
+	m.scrollLogs("a", -logVisibleLines/2)
+	_, logs, scroll, _ = m.selectedLogs()
+	if scroll >= maxScroll {
+		t.Fatalf("expected scroll to move upward, got %d", scroll)
+	}
+	if len(logs) != logVisibleLines {
+		t.Fatalf("expected %d visible log lines after scroll, got %d", logVisibleLines, len(logs))
 	}
 }
 
@@ -89,20 +131,56 @@ func TestRenderLogLineHighlightsSeverity(t *testing.T) {
 	}
 }
 
-func TestRDPDoneMarksSessionIdle(t *testing.T) {
+func TestRDPDoneMarksSessionExited(t *testing.T) {
 	m := New(map[string]config.Session{
 		"a": {User: "u", Host: "h1", LastUsed: 2},
 	})
-	m.activeSession["a"] = true
+	m.sessionState["a"] = sessionActive
 	m.reload()
 
 	updated, _ := m.Update(rdpDoneMsg{session: "a"})
 	m2 := updated.(Model)
 
-	if m2.activeSession["a"] {
-		t.Fatal("expected session to be idle after rdpDoneMsg")
+	if got := m2.sessionState["a"]; got != sessionExited {
+		t.Fatalf("expected sessionExited, got %v", got)
 	}
-	if out := m2.View(); !strings.Contains(out, "idle") {
-		t.Errorf("expected idle status in view:\n%s", out)
+	if out := m2.View(); !strings.Contains(out, "exited") {
+		t.Errorf("expected exited status in view:\n%s", out)
+	}
+}
+
+func TestRDPDoneMarksSessionFailed(t *testing.T) {
+	m := New(map[string]config.Session{
+		"a": {User: "u", Host: "h1", LastUsed: 2},
+	})
+	m.sessionState["a"] = sessionActive
+	m.reload()
+
+	updated, _ := m.Update(rdpDoneMsg{session: "a", err: errors.New("boom")})
+	m2 := updated.(Model)
+
+	if got := m2.sessionState["a"]; got != sessionFailed {
+		t.Fatalf("expected sessionFailed, got %v", got)
+	}
+	if out := m2.View(); !strings.Contains(out, "failed") {
+		t.Errorf("expected failed status in view:\n%s", out)
+	}
+}
+
+func TestRDPActiveMarksSessionActive(t *testing.T) {
+	m := New(map[string]config.Session{
+		"a": {User: "u", Host: "h1", LastUsed: 2},
+	})
+	m.sessionState["a"] = sessionStarting
+	m.reload()
+
+	updated, _ := m.Update(rdpActiveMsg{session: "a"})
+	m2 := updated.(Model)
+
+	if got := m2.sessionState["a"]; got != sessionActive {
+		t.Fatalf("expected sessionActive, got %v", got)
+	}
+	if out := m2.View(); !strings.Contains(out, "active") {
+		t.Errorf("expected active status in view:\n%s", out)
 	}
 }

@@ -34,7 +34,11 @@ func Path() string {
 // Load reads the session map. A missing file is an empty map, not an error,
 // matching the bash launcher seeding '{}'.
 func Load() (map[string]Session, error) {
-	data, err := os.ReadFile(Path())
+	return LoadFrom(Path())
+}
+
+func LoadFrom(path string) (map[string]Session, error) {
+	data, err := os.ReadFile(path)
 	if os.IsNotExist(err) {
 		return map[string]Session{}, nil
 	}
@@ -51,7 +55,10 @@ func Load() (map[string]Session, error) {
 // Save writes the session map atomically (write temp, rename), the same way the
 // bash launcher does via "$RDP_CONFIG.tmp" && mv.
 func Save(sessions map[string]Session) error {
-	path := Path()
+	return SaveTo(Path(), sessions)
+}
+
+func SaveTo(path string, sessions map[string]Session) error {
 	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
 		return err
 	}

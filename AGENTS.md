@@ -33,7 +33,7 @@ The password is the asset. Protect it above convenience.
 - **Never pass the password on the command line** (`/p:`, args, or env that shows
   in `ps`). Feed it to xfreerdp via `/from-stdin` over a pipe.
 - **Never write the password to disk** — not in `rdp-sessions.json`, not in logs,
-  not in temp files. The only persistence is the system keyring via `secret-tool`.
+  not in temp files. The only persistence is the system keyring via `go-keyring`.
 - **Never log secrets.** No password, no full keyring contents, in any output or
   debug line.
 - Clear the in-memory password as soon as it has been handed to the child process.
@@ -50,16 +50,16 @@ This is a launcher, not a platform. Simplicity is a feature.
 - This rule applies to the docs too: do not grow this repo into Marvin-sized
   governance. One `AGENTS.md`, one `CLAUDE.md` pointer, one `PLAN.md`.
 
-### Article III — Compatibility with the bash launcher
+### Article III — Compatibility with launcher data
 
-The Go TUI replaces `kokoarch/bin/kokoarch-rdp`. Until that's gone, both read the
-same state. Breaking parity is a regression.
+The Go TUI replaces `kokoarch/bin/kokoarch-rdp`. Keep session data and launch
+behavior compatible where it matters, but the password backend is owned by this
+app.
 
 - **Same config file**: `~/.config/kokoarch/rdp-sessions.json`, same schema
   (`user`, `host`, `lastUsed`, `ignore_cert`). See [PLAN.md](PLAN.md).
-- **Same keyring entries**: attributes `rdp host <HOST> rdp user <MUNGED_USER>`,
-  same order, and the same username munge (`.\` prefix when no `\` present).
-  Existing saved passwords MUST resolve.
+- **Same username munge**: prefix `.\` when no `\` is present before passing the
+  username to FreeRDP or deriving the keyring entry identity.
 - **Same xfreerdp flags** as the bash launcher (see PLAN.md). Changes to the flag
   set are a deliberate decision, noted in the commit.
 
@@ -86,8 +86,9 @@ In the era of agents, prefer a few lines inline over a new dependency.
 
 Approved baseline:
 - `github.com/charmbracelet/bubbletea`, `bubbles`, `lipgloss` — the TUI.
-- Standard library for everything else (`os/exec` for `secret-tool` / `xfreerdp3`,
-  `encoding/json` for config).
+- `github.com/zalando/go-keyring` — native OS keyring access.
+- Standard library for everything else (`os/exec` for `xfreerdp3`, `encoding/json`
+  for config).
 
 Anything outside this list needs a one-line justification in the commit: what it
 solves, and why inline isn't viable.

@@ -49,9 +49,17 @@ func relTime(ts int64) string {
 	}
 }
 
-func sessionStatus(active bool) string {
-	if active {
+func sessionStatus(state sessionState) string {
+	switch state {
+	case sessionStarting:
+		return "starting"
+	case sessionActive:
 		return "active"
+	case sessionExited:
+		return "exited"
+	case sessionFailed:
+		return "failed"
+	default:
+		return "idle"
 	}
-	return "idle"
 }

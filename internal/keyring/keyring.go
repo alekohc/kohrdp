@@ -1,11 +1,14 @@
-// Package keyring wraps secret-tool, matching the bash launcher's munge and
-// attribute layout exactly so passwords stored by either tool resolve.
+// Package keyring wraps the OS keyring.
 package keyring
 
 import (
-	"os/exec"
+	"errors"
 	"strings"
+
+	gokeyring "github.com/zalando/go-keyring"
 )
+
+const service = "kokoarch-rdp"
 
 // MungeUser replicates the bash launcher: if the username has no backslash,
 // prefix ".\". Keyring entries were stored against the munged name, so every
@@ -20,36 +23,30 @@ func MungeUser(user string) string {
 // Lookup returns the stored password for host/user, or "" if none. The user is
 // munged here; callers pass the raw username.
 func Lookup(host, user string) (string, error) {
-	out, err := exec.Command("secret-tool", "lookup",
-		"rdp", "host", host, "rdp", "user", MungeUser(user)).Output()
-	if err != nil {
-		// secret-tool exits non-zero when the secret is absent; treat that as
-		// "no password" rather than a hard error.
-		if _, ok := err.(*exec.ExitError); ok {
-			return "", nil
-		}
+	password, err := gokeyring.Get(service, entryName(host, user))
+	if err == nil {
+		return password, nil
+	}
+	if !errors.Is(err, gokeyring.ErrNotFound) {
 		return "", err
 	}
-	// Bash captures the password via $(...), which strips trailing newlines.
-	// Trim here so a secret stored by either tool resolves to the same bytes.
-	return strings.TrimRight(string(out), "\n"), nil
+	return "", nil
 }
 
-// Store saves the password under the same label and attributes the bash
-// launcher uses. The password is fed via stdin, never the command line.
+// Store saves the password in the OS keyring.
 func Store(host, user, password string) error {
-	cmd := exec.Command("secret-tool", "store", "--label=RDP "+host,
-		"rdp", "host", host, "rdp", "user", MungeUser(user))
-	cmd.Stdin = strings.NewReader(password)
-	return cmd.Run()
+	return gokeyring.Set(service, entryName(host, user), password)
 }
 
-// Clear removes the stored password, matching --reprompt in the bash launcher.
+// Clear removes the stored password.
 func Clear(host, user string) error {
-	err := exec.Command("secret-tool", "clear",
-		"rdp", "host", host, "rdp", "user", MungeUser(user)).Run()
-	if _, ok := err.(*exec.ExitError); ok {
-		return nil
+	err := gokeyring.Delete(service, entryName(host, user))
+	if err != nil && !errors.Is(err, gokeyring.ErrNotFound) {
+		return err
 	}
-	return err
+	return nil
+}
+
+func entryName(host, user string) string {
+	return host + "|" + MungeUser(user)
 }

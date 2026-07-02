@@ -1,0 +1,22 @@
+pkgname=kokoarch-rdp
+pkgver=@VERSION@
+pkgrel=1
+pkgdesc='Terminal UI for launching FreeRDP sessions'
+arch=('x86_64' 'aarch64')
+url=''
+license=('custom')
+depends=('freerdp')
+makedepends=('go')
+source=("$pkgname-$pkgver.tar.gz")
+sha256sums=('SKIP')
+
+build() {
+	cd "$srcdir/$pkgname-$pkgver"
+	make build VERSION="$pkgver"
+}
+
+package() {
+	cd "$srcdir/$pkgname-$pkgver"
+	install -Dm755 kokoarch-rdp "$pkgdir/usr/bin/kokoarch-rdp"
+	install -Dm644 README.md "$pkgdir/usr/share/doc/$pkgname/README.md"
+}

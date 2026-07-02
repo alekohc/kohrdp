@@ -51,7 +51,7 @@ func Args(o Options) []string {
 // Launch spawns xfreerdp3 detached (like the bash "&"), feeding the password to
 // its stdin so it never appears in the process table. The caller should clear
 // its copy of password once this returns.
-func Launch(o Options, password string, onOutput func(string), onDone func()) error {
+func Launch(o Options, password string, onOutput func(string), onDone func(error)) error {
 	cmd := exec.Command("xfreerdp3", Args(o)...)
 	cmd.Stdin = strings.NewReader(password + "\n")
 
@@ -79,9 +79,9 @@ func Launch(o Options, password string, onOutput func(string), onDone func()) er
 	}()
 	go func() {
 		wg.Wait()
-		_ = cmd.Wait()
+		err := cmd.Wait()
 		if onDone != nil {
-			onDone()
+			onDone(err)
 		}
 	}()
 

@@ -19,7 +19,19 @@ import (
 
 type state int
 
-const maxLogs = 8
+const (
+	logVisibleLines = 12
+)
+
+type sessionState int
+
+const (
+	sessionIdle sessionState = iota
+	sessionStarting
+	sessionActive
+	sessionExited
+	sessionFailed
+)
 
 const (
 	stateTable state = iota
@@ -50,8 +62,9 @@ type Model struct {
 	pend          pending
 	status        string
 	stStyle       lipgloss.Style
-	activeSession map[string]bool
-	logsBySession map[string][]string
+	sessionState  map[string]sessionState
+	logsBySession map[string]*sessionLogFile
+	logScroll     map[string]int
 	rdpMsgCh      chan tea.Msg
 	width         int
 }
@@ -62,6 +75,11 @@ type rdpLogMsg struct {
 }
 
 type rdpDoneMsg struct {
+	session string
+	err     error
+}
+
+type rdpActiveMsg struct {
 	session string
 }
 
@@ -86,8 +104,9 @@ func New(sessions map[string]config.Session) Model {
 		pwInput:       pw,
 		state:         stateTable,
 		stStyle:       mutedStyle,
-		activeSession: make(map[string]bool),
-		logsBySession: make(map[string][]string),
+		sessionState:  make(map[string]sessionState),
+		logsBySession: make(map[string]*sessionLogFile),
+		logScroll:     make(map[string]int),
 		rdpMsgCh:      make(chan tea.Msg, 64),
 	}
 	m.reload()
@@ -120,7 +139,7 @@ func (m *Model) reload() {
 		rows[i] = table.Row{
 			n.Name,
 			n.User + "@" + n.Host,
-			sessionStatus(m.activeSession[n.Name]),
+			sessionStatus(m.sessionState[n.Name]),
 			certLabel(n.IgnoreCert),
 			relTime(n.LastUsed),
 		}
@@ -165,13 +184,33 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 	case rdpLogMsg:
 		m.appendLog(msg.session, msg.line)
+		if m.sessionState[msg.session] == sessionStarting {
+			m.sessionState[msg.session] = sessionActive
+			m.reload()
+		}
 		return m, waitRDPMsg(m.rdpMsgCh)
 	case rdpDoneMsg:
-		delete(m.activeSession, msg.session)
+		if msg.err != nil {
+			m.sessionState[msg.session] = sessionFailed
+		} else {
+			m.sessionState[msg.session] = sessionExited
+		}
 		m.reload()
 		return m, waitRDPMsg(m.rdpMsgCh)
+	case rdpActiveMsg:
+		if m.sessionState[msg.session] == sessionStarting {
+			m.sessionState[msg.session] = sessionActive
+			m.reload()
+		}
+		return m, nil
 	}
 	return m, nil
+}
+
+func markSessionActive(session string) tea.Cmd {
+	return tea.Tick(500*time.Millisecond, func(time.Time) tea.Msg {
+		return rdpActiveMsg{session: session}
+	})
 }
 
 func waitRDPMsg(ch <-chan tea.Msg) tea.Cmd {
@@ -192,11 +231,41 @@ func (m *Model) appendLog(session, line string) {
 	if line == "" {
 		return
 	}
-	logs := append(m.logsBySession[session], line)
-	if len(logs) > maxLogs {
-		logs = logs[len(logs)-maxLogs:]
+	lf, err := m.ensureLogFile(session)
+	if err != nil {
+		m.setStatus("log file failed: "+err.Error(), statusErr)
+		return
 	}
-	m.logsBySession[session] = logs
+	wasAtBottom := m.logScroll[session] >= m.maxLogScroll(lf.lines)
+	if err := lf.append(line); err != nil {
+		m.setStatus("log write failed: "+err.Error(), statusErr)
+		return
+	}
+	if wasAtBottom {
+		m.logScroll[session] = m.maxLogScroll(lf.lines)
+	}
+}
+
+func (m Model) maxLogScroll(total int) int {
+	if total <= logVisibleLines {
+		return 0
+	}
+	return total - logVisibleLines
+}
+
+func (m *Model) scrollLogs(session string, delta int) {
+	max := 0
+	if lf := m.logsBySession[session]; lf != nil {
+		max = m.maxLogScroll(lf.lines)
+	}
+	next := m.logScroll[session] + delta
+	if next < 0 {
+		next = 0
+	}
+	if next > max {
+		next = max
+	}
+	m.logScroll[session] = next
 }
 
 // --- table view ---
@@ -207,6 +276,16 @@ func (m Model) updateTable(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m, tea.Quit
 	case key.Matches(msg, keys.Help):
 		m.help.ShowAll = !m.help.ShowAll
+		return m, nil
+	case key.Matches(msg, keys.LogOlder):
+		if n, ok := m.selected(); ok {
+			m.scrollLogs(n.Name, -logVisibleLines/2)
+		}
+		return m, nil
+	case key.Matches(msg, keys.LogNewer):
+		if n, ok := m.selected(); ok {
+			m.scrollLogs(n.Name, logVisibleLines/2)
+		}
 		return m, nil
 	case key.Matches(msg, keys.New):
 		m.form = newForm()
@@ -273,13 +352,17 @@ func (m Model) updateForm(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		name := m.form.name()
 		if m.form.origName != "" && m.form.origName != name {
 			delete(m.sessions, m.form.origName)
-			if logs, ok := m.logsBySession[m.form.origName]; ok {
-				m.logsBySession[name] = logs
+			if lf, ok := m.logsBySession[m.form.origName]; ok {
+				m.logsBySession[name] = lf
 				delete(m.logsBySession, m.form.origName)
 			}
-			if m.activeSession[m.form.origName] {
-				m.activeSession[name] = true
-				delete(m.activeSession, m.form.origName)
+			if state, ok := m.sessionState[m.form.origName]; ok {
+				m.sessionState[name] = state
+				delete(m.sessionState, m.form.origName)
+			}
+			if scroll, ok := m.logScroll[m.form.origName]; ok {
+				m.logScroll[name] = scroll
+				delete(m.logScroll, m.form.origName)
 			}
 		}
 		s := m.sessions[name]
@@ -304,8 +387,12 @@ func (m Model) updateConfirmDelete(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	switch msg.String() {
 	case "y", "Y":
 		delete(m.sessions, m.pend.name)
-		delete(m.activeSession, m.pend.name)
+		delete(m.sessionState, m.pend.name)
+		if lf := m.logsBySession[m.pend.name]; lf != nil {
+			lf.remove()
+		}
 		delete(m.logsBySession, m.pend.name)
+		delete(m.logScroll, m.pend.name)
 		if err := config.Save(m.sessions); err != nil {
 			m.setStatus("save failed: "+err.Error(), statusErr)
 		} else {
@@ -408,18 +495,25 @@ func (m Model) finishConnect() (tea.Model, tea.Cmd) {
 		Multimon:   m.pend.multimon,
 	}, m.pend.password, func(line string) {
 		m.rdpMsgCh <- rdpLogMsg{session: sessionName, line: line}
-	}, func() {
-		m.rdpMsgCh <- rdpDoneMsg{session: sessionName}
+	}, func(err error) {
+		m.rdpMsgCh <- rdpDoneMsg{session: sessionName, err: err}
 	})
 
 	m.pend.password = "" // wipe secret as soon as it is handed off
 	if err != nil {
+		m.sessionState[m.pend.name] = sessionFailed
 		m.setStatus("launch failed: "+err.Error(), statusErr)
 	} else {
-		m.activeSession[m.pend.name] = true
+		m.sessionState[m.pend.name] = sessionStarting
+		if lf := m.logsBySession[m.pend.name]; lf != nil {
+			m.logScroll[m.pend.name] = m.maxLogScroll(lf.lines)
+		}
 		m.setStatus("connecting to "+m.pend.name, statusOK)
 	}
 	m.reload()
 	m.state = stateTable
-	return m, nil
+	if err != nil {
+		return m, nil
+	}
+	return m, markSessionActive(m.pend.name)
 }

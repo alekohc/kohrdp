@@ -1,15 +1,15 @@
 # Build plan — kokoarch-rdp (Go TUI)
 
-A standalone Go TUI to replace the `kokoarch-rdp` bash launcher. Designed to be
-**drop-in compatible** with the bash script's data (same JSON, same keyring
-entries) so both can run during the transition.
+A standalone Go TUI to replace the `kokoarch-rdp` bash launcher. It keeps the
+same JSON session data and FreeRDP launch behavior, while using `go-keyring` for
+password storage.
 
 ## Stack
 
 - **github.com/charmbracelet/bubbletea** — TUI runtime (Elm-style model/update/view)
 - **github.com/charmbracelet/bubbles** — prebuilt `table`, `textinput`, `key`, `help`, `spinner`
 - **github.com/charmbracelet/lipgloss** — styling/layout
-- Keyring: shell out to `secret-tool` (matches existing entries exactly) — see compat note
+- Keyring: `go-keyring`
 - Go 1.22+, single static binary
 
 ## Repo layout
@@ -22,7 +22,7 @@ kokoarch-rdp/
 │   ├── config/
 │   │   └── config.go    # load/save rdp-sessions.json, Session struct
 │   ├── keyring/
-│   │   └── keyring.go   # secret-tool lookup/store/clear wrappers
+│   │   └── keyring.go   # go-keyring wrappers
 │   ├── rdp/
 │   │   └── launch.go    # build xfreerdp3 args, pipe password, spawn
 │   └── ui/
@@ -53,14 +53,12 @@ type Session struct {
 
 ## Critical compatibility details
 
-Existing saved sessions and keyring passwords MUST keep working.
+Existing saved session definitions MUST keep working.
 
-1. **Username munge** — replicate `if user has no '\', prefix '.\'` before any
-   keyring lookup or `/u:`. Keyring entries were stored against the munged name
-   (`.\admin`); this must match byte-for-byte.
-2. **Keyring attributes** — `secret-tool lookup rdp host <HOST> rdp user <MUNGED_USER>`
-   with the same attribute pairs and order. Same for `store --label="RDP <HOST>"`
-   and `clear`.
+1. **Username munge** — replicate `if user has no '\\', prefix '.\\'` before any
+   keyring lookup or `/u:`.
+2. **Keyring identity** — passwords are stored under the app's own keyring
+   service name using the munged user and host as the entry identity.
 3. **xfreerdp3 invocation** — port verbatim:
    ```
    /u:<user> /from-stdin /v:<host> [/wm-class:kokoarch-rdp-<class>] [/cert:ignore]
@@ -72,7 +70,11 @@ Existing saved sessions and keyring passwords MUST keep working.
 
 ## TUI behavior
 
-**Main view** — table: `name · user@host · cert · last used` (relative time).
+**Main view** — table: `name · user@host · status · cert · last used` (relative time),
+with a per-session FreeRDP log pane on the right.
+
+Per-session logs are retained in temp files during the app lifetime so the UI can
+scroll them without keeping the whole log history in memory.
 
 | key | action |
 |-----|--------|
@@ -83,7 +85,8 @@ Existing saved sessions and keyring passwords MUST keep working.
 | `c` | toggle `ignore_cert` |
 | `p` | clear keyring password (force reprompt next connect) |
 | `m` | connect with multimon |
-| `/` | filter (bubbles table built-in) |
+| `[` / `PgUp` | older logs for selected session |
+| `]` / `PgDn` | newer logs for selected session |
 | `?` | toggle help |
 | `q`/`esc` | quit |
 
@@ -91,13 +94,15 @@ Existing saved sessions and keyring passwords MUST keep working.
 Enter saves to JSON, esc cancels.
 
 **Connect flow**:
-1. Resolve munged user → `secret-tool lookup`.
-2. If no password: drop out of alt-screen, prompt (bubbletea password `textinput`
-   state), offer to store in keyring.
+1. Resolve munged user → OS keyring lookup.
+2. If no password: prompt with an in-TUI password `textinput` state, offer to
+   store in keyring.
 3. Resolve cert: flag/stored pref → `/cert:ignore`; if `IgnoreCert == nil`, show a
    confirm and persist the choice.
 4. Bump `LastUsed`, save JSON, spawn xfreerdp3 **detached** (like bash `&`), return
    to the table.
+5. Keep per-session runtime state in the table (`idle`, `starting`, `active`, `exited`,
+   `failed`) and show recent FreeRDP logs in the side pane.
 
 ## Tricky bit to plan for
 
@@ -109,14 +114,20 @@ to avoid fighting the renderer. If you must shell out interactively, use
 
 ## Build / install
 
-- `go build -o kokoarch-rdp .`
-- Copy/symlink into `~/.local/bin` (keep the command name so fish aliases / the
-  launcher keep working).
+- `make build`
+- `make install`
+- `make check`
+- `make release-tarball` for a generic versioned binary tarball
+- `make dist-arch` then `cd dist/arch && makepkg -si` for Arch Linux packaging
+- Or manually: `go build -o kokoarch-rdp .`
+- Install to `~/.local/bin` and keep the command name `kokoarch-rdp` so existing
+  shell usage keeps working.
+- `kokoarch-rdp --export FILE` and `kokoarch-rdp --import FILE` move session
+  definitions between machines without exporting passwords.
 
 ## Migration / parity checklist
 
 - [ ] Reads existing `rdp-sessions.json` unchanged
-- [ ] Finds passwords stored by the bash script (munge + attributes match)
 - [ ] Recency ordering matches (`lastUsed` desc)
 - [ ] Cert prompt persists `ignore_cert` like the bash version
 - [ ] Password never appears in `ps`

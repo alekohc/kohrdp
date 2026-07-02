@@ -7,6 +7,8 @@ import "github.com/charmbracelet/bubbles/key"
 type keyMap struct {
 	Connect  key.Binding
 	Multimon key.Binding
+	LogOlder key.Binding
+	LogNewer key.Binding
 	New      key.Binding
 	Edit     key.Binding
 	Delete   key.Binding
@@ -19,6 +21,8 @@ type keyMap struct {
 var keys = keyMap{
 	Connect:  key.NewBinding(key.WithKeys("enter"), key.WithHelp("enter", "connect")),
 	Multimon: key.NewBinding(key.WithKeys("m"), key.WithHelp("m", "multimon")),
+	LogOlder: key.NewBinding(key.WithKeys("[", "pgup"), key.WithHelp("[", "older logs")),
+	LogNewer: key.NewBinding(key.WithKeys("]", "pgdown"), key.WithHelp("]", "newer logs")),
 	New:      key.NewBinding(key.WithKeys("n"), key.WithHelp("n", "new")),
 	Edit:     key.NewBinding(key.WithKeys("e"), key.WithHelp("e", "edit")),
 	Delete:   key.NewBinding(key.WithKeys("d"), key.WithHelp("d", "delete")),
@@ -30,12 +34,12 @@ var keys = keyMap{
 
 // ShortHelp / FullHelp satisfy help.KeyMap.
 func (k keyMap) ShortHelp() []key.Binding {
-	return []key.Binding{k.Connect, k.New, k.Edit, k.Delete, k.Cert, k.Help, k.Quit}
+	return []key.Binding{k.Connect, k.LogOlder, k.LogNewer, k.Help, k.Quit}
 }
 
 func (k keyMap) FullHelp() [][]key.Binding {
 	return [][]key.Binding{
-		{k.Connect, k.Multimon},
+		{k.Connect, k.Multimon, k.LogOlder, k.LogNewer},
 		{k.New, k.Edit, k.Delete},
 		{k.Cert, k.ClearPw},
 		{k.Help, k.Quit},
