@@ -50,6 +50,21 @@ func TestEmptyViewRenders(t *testing.T) {
 	}
 }
 
+// Starting empty leaves the table cursor at -1; adding the first session must
+// not leave it there (would panic in selected) and should select row 0.
+func TestFirstSessionAfterEmptySelectsRow(t *testing.T) {
+	m := New(map[string]config.Session{})
+	m.sessions["tp-test"] = config.Session{User: "administrator", Host: "192.168.11.10"}
+	m.reload()
+
+	if _, ok := m.selected(); !ok {
+		t.Fatal("no session selected after adding first session")
+	}
+	if out := m.View(); !strings.Contains(out, "tp-test") {
+		t.Errorf("view missing added session:\n%s", out)
+	}
+}
+
 func TestLogViewRendersRecentLines(t *testing.T) {
 	m := New(map[string]config.Session{
 		"a": {User: "u", Host: "h1", LastUsed: 2},

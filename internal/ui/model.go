@@ -145,13 +145,17 @@ func (m *Model) reload() {
 		}
 	}
 	m.table.SetRows(rows)
+	if m.table.Cursor() < 0 && len(rows) > 0 {
+		m.table.SetCursor(0)
+	}
 }
 
 func (m Model) selected() (config.Named, bool) {
-	if len(m.ordered) == 0 {
+	i := m.table.Cursor()
+	if i < 0 || i >= len(m.ordered) {
 		return config.Named{}, false
 	}
-	return m.ordered[m.table.Cursor()], true
+	return m.ordered[i], true
 }
 
 func (m *Model) setStatus(s string, style lipgloss.Style) {
