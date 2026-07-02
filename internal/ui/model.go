@@ -414,6 +414,11 @@ func (m Model) updateForm(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		s.Gateway = m.form.gateway()
 		s.Size = m.form.size()
 		s.Drives = m.form.drives()
+		s.Clipboard = togglePtr(m.form.redir[rClipboard], redirDefault[rClipboard])
+		s.Sound = togglePtr(m.form.redir[rSound], redirDefault[rSound])
+		s.Microphone = togglePtr(m.form.redir[rMicrophone], redirDefault[rMicrophone])
+		s.Printer = togglePtr(m.form.redir[rPrinter], redirDefault[rPrinter])
+		s.Smartcard = togglePtr(m.form.redir[rSmartcard], redirDefault[rSmartcard])
 		m.sessions[name] = s
 		if err := config.Save(m.sessions); err != nil {
 			m.setStatus("save failed: "+err.Error(), statusErr)
@@ -447,6 +452,15 @@ func (m Model) updateConfirmDelete(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	}
 	m.state = stateTable
 	return m, nil
+}
+
+// togglePtr stores an explicit flag only when it differs from the default, so
+// unchanged sessions keep a clean JSON with no redirection keys.
+func togglePtr(v, def bool) *bool {
+	if v == def {
+		return nil
+	}
+	return &v
 }
 
 // --- disconnect confirm ---
@@ -563,14 +577,19 @@ func (m Model) finishConnect() (tea.Model, tea.Cmd) {
 	}
 
 	err = rdp.Launch(rdp.Options{
-		User:       m.pend.session.User,
-		Host:       m.pend.session.Host,
-		IgnoreCert: ignore,
-		Multimon:   m.pend.multimon,
-		Domain:     m.pend.session.Domain,
-		Gateway:    m.pend.session.Gateway,
-		Size:       m.pend.session.Size,
-		Drives:     m.pend.session.Drives,
+		User:        m.pend.session.User,
+		Host:        m.pend.session.Host,
+		IgnoreCert:  ignore,
+		Multimon:    m.pend.multimon,
+		Domain:      m.pend.session.Domain,
+		Gateway:     m.pend.session.Gateway,
+		Size:        m.pend.session.Size,
+		Drives:      m.pend.session.Drives,
+		NoClipboard: !config.BoolOr(m.pend.session.Clipboard, true),
+		NoSound:     !config.BoolOr(m.pend.session.Sound, true),
+		Microphone:  config.BoolOr(m.pend.session.Microphone, false),
+		Printer:     config.BoolOr(m.pend.session.Printer, false),
+		Smartcard:   config.BoolOr(m.pend.session.Smartcard, false),
 	}, m.pend.password, lf.path, func(err error) {
 		m.rdpMsgCh <- rdpDoneMsg{session: sessionName, err: err}
 	})

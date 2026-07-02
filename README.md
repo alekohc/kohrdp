@@ -200,7 +200,16 @@ The new/edit form (`n` / `e`) has required and optional fields:
   `work,/home/you/work media,/mnt/media`. When empty, `~/Downloads` is mounted
   as before.
 
-Optional fields left blank are simply omitted from the `xfreerdp3` command.
+Optional text fields left blank are simply omitted from the `xfreerdp3` command.
+
+The form also has toggles (navigate with `tab`/`↑↓`, flip with `space`):
+
+- `cert` — certificate mode (unset / ignore / enforce).
+- `clipboard` — on by default (`+clipboard` / `-clipboard`).
+- `sound` — on by default (`/sound`).
+- `microphone` — off by default (`/microphone`).
+- `printer` — off by default (`/printer`).
+- `smartcard` — off by default (`/smartcard`).
 
 ## Keys
 

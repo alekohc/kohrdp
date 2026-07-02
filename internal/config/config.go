@@ -22,6 +22,21 @@ type Session struct {
 	Size       string   `json:"size,omitempty"`   // "WxH"
 	Domain     string   `json:"domain,omitempty"`
 	Gateway    string   `json:"gateway,omitempty"`
+	// Redirection toggles. nil = use the default (clipboard/sound on, the rest
+	// off), so existing session files keep their behavior.
+	Clipboard  *bool `json:"clipboard,omitempty"`
+	Sound      *bool `json:"sound,omitempty"`
+	Microphone *bool `json:"microphone,omitempty"`
+	Printer    *bool `json:"printer,omitempty"`
+	Smartcard  *bool `json:"smartcard,omitempty"`
+}
+
+// BoolOr resolves an optional flag to its effective value.
+func BoolOr(p *bool, def bool) bool {
+	if p == nil {
+		return def
+	}
+	return *p
 }
 
 // Named pairs a session with its map key, for ordered display.

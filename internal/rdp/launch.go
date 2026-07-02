@@ -21,6 +21,13 @@ type Options struct {
 	Gateway    string   // /gateway:g: ; "" to omit
 	Size       string   // /size:WxH ; "" to omit
 	Drives     []string // each "name,path"; empty => default Downloads mount
+	// Redirection. Clipboard and sound are on unless disabled; the rest are off
+	// unless enabled — so the zero value keeps the historical behavior.
+	NoClipboard bool
+	NoSound     bool
+	Microphone  bool
+	Printer     bool
+	Smartcard   bool
 }
 
 // Args returns the xfreerdp3 argument vector, in the same order as the bash
@@ -49,11 +56,26 @@ func Args(o Options) []string {
 	if o.Size != "" {
 		args = append(args, "/size:"+o.Size)
 	}
-	args = append(args,
-		"+auto-reconnect", "+clipboard", "+fonts",
-		"/sound", "/dynamic-resolution",
-		"/gfx", "/bpp:32",
-	)
+	args = append(args, "+auto-reconnect")
+	if o.NoClipboard {
+		args = append(args, "-clipboard")
+	} else {
+		args = append(args, "+clipboard")
+	}
+	args = append(args, "+fonts")
+	if !o.NoSound {
+		args = append(args, "/sound")
+	}
+	args = append(args, "/dynamic-resolution", "/gfx", "/bpp:32")
+	if o.Microphone {
+		args = append(args, "/microphone")
+	}
+	if o.Printer {
+		args = append(args, "/printer")
+	}
+	if o.Smartcard {
+		args = append(args, "/smartcard")
+	}
 	if len(o.Drives) > 0 {
 		for _, d := range o.Drives {
 			args = append(args, "/drive:"+d)

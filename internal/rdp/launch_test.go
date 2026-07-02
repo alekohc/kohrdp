@@ -49,6 +49,32 @@ func TestArgsConnectionProps(t *testing.T) {
 	}
 }
 
+func TestArgsRedirection(t *testing.T) {
+	def := strings.Join(Args(Options{User: "u", Host: "h"}), " ")
+	if !strings.Contains(def, "+clipboard") || !strings.Contains(def, "/sound") {
+		t.Errorf("defaults should keep clipboard and sound: %s", def)
+	}
+	for _, off := range []string{"/microphone", "/printer", "/smartcard", "-clipboard"} {
+		if strings.Contains(def, off) {
+			t.Errorf("defaults should not contain %q: %s", off, def)
+		}
+	}
+
+	on := strings.Join(Args(Options{
+		User: "u", Host: "h",
+		NoClipboard: true, NoSound: true,
+		Microphone: true, Printer: true, Smartcard: true,
+	}), " ")
+	for _, want := range []string{"-clipboard", "/microphone", "/printer", "/smartcard"} {
+		if !strings.Contains(on, want) {
+			t.Errorf("toggled args missing %q: %s", want, on)
+		}
+	}
+	if strings.Contains(on, "/sound") || strings.Contains(on, "+clipboard") {
+		t.Errorf("sound/clipboard should be disabled: %s", on)
+	}
+}
+
 func TestDisconnectNoMatch(t *testing.T) {
 	n, err := Disconnect("nobody", "203.0.113.255")
 	if err != nil {

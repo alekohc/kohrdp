@@ -9,13 +9,15 @@ import (
 	"rdpkoh/internal/config"
 )
 
-// form is the new/edit view: text fields plus a cert toggle. When editing an
-// existing session, origName is its current key (so a rename can drop the old
-// entry); it is "" for a new session. Only name/user/host are required.
+// form is the new/edit view: text fields, a cert toggle, and redirection
+// toggles, all in one focus cycle. When editing an existing session, origName is
+// its current key (so a rename can drop the old entry); "" for a new session.
+// Only name/user/host are required.
 type form struct {
 	inputs   []textinput.Model
-	focus    int
-	ignore   *bool // mirrors Session.IgnoreCert; cycled unset → yes → no
+	ignore   *bool  // cert; cycled unset → yes → no
+	redir    []bool // parallel to redirLabels
+	focus    int    // 0..len(inputs)-1 = inputs, then cert, then redir
 	origName string
 }
 
@@ -29,14 +31,27 @@ const (
 	fDrives
 )
 
+const (
+	rClipboard = iota
+	rSound
+	rMicrophone
+	rPrinter
+	rSmartcard
+)
+
+var (
+	inputLabels  = []string{"name", "user", "host", "domain", "gateway", "size", "drives"}
+	redirLabels  = []string{"clipboard", "sound", "microphone", "printer", "smartcard"}
+	redirDefault = []bool{true, true, false, false, false}
+)
+
 func newForm() form {
-	labels := []string{"name", "user", "host", "domain", "gateway", "size", "drives"}
 	placeholders := []string{
 		"name", "user", "host",
 		"domain (optional)", "gateway (optional)", "WxH (optional)",
 		"name,path name,path … (optional)",
 	}
-	f := form{inputs: make([]textinput.Model, len(labels))}
+	f := form{inputs: make([]textinput.Model, len(inputLabels))}
 	for i := range f.inputs {
 		ti := textinput.New()
 		ti.Prompt = ""
@@ -44,6 +59,7 @@ func newForm() form {
 		ti.CharLimit = 256
 		f.inputs[i] = ti
 	}
+	f.redir = append([]bool(nil), redirDefault...)
 	f.inputs[fName].Focus()
 	return f
 }
@@ -59,41 +75,63 @@ func editForm(name string, s config.Session) form {
 	f.inputs[fSize].SetValue(s.Size)
 	f.inputs[fDrives].SetValue(strings.Join(s.Drives, " "))
 	f.ignore = s.IgnoreCert
+	f.redir[rClipboard] = config.BoolOr(s.Clipboard, redirDefault[rClipboard])
+	f.redir[rSound] = config.BoolOr(s.Sound, redirDefault[rSound])
+	f.redir[rMicrophone] = config.BoolOr(s.Microphone, redirDefault[rMicrophone])
+	f.redir[rPrinter] = config.BoolOr(s.Printer, redirDefault[rPrinter])
+	f.redir[rSmartcard] = config.BoolOr(s.Smartcard, redirDefault[rSmartcard])
 	return f
 }
 
-func (f *form) focusField(i int) {
+func (f *form) fieldCount() int { return len(f.inputs) + 1 + len(f.redir) }
+
+func (f *form) moveFocus(delta int) {
+	n := f.fieldCount()
+	f.focus = (f.focus + delta + n) % n
 	for j := range f.inputs {
-		if j == i {
+		if j == f.focus {
 			f.inputs[j].Focus()
 		} else {
 			f.inputs[j].Blur()
 		}
 	}
-	f.focus = i
 }
 
-// update handles field navigation and typing. Returns (done, submitted): done
-// when the user leaves the form, submitted true only on a valid save (enter with
-// name/user/host filled).
+// toggleFocused flips the toggle the focus is on (cert or a redirection flag).
+func (f *form) toggleFocused() {
+	i := f.focus - len(f.inputs)
+	if i == 0 {
+		f.ignore = cycleCert(f.ignore)
+		return
+	}
+	f.redir[i-1] = !f.redir[i-1]
+}
+
+// update handles field navigation, typing, and toggles. Returns (done,
+// submitted): done when the user leaves the form, submitted true only on a valid
+// save (enter with name/user/host filled).
 func (f *form) update(msg tea.KeyMsg) (cmd tea.Cmd, done, submitted bool) {
 	switch msg.String() {
 	case "esc":
 		return nil, true, false
 	case "tab", "down":
-		f.focusField((f.focus + 1) % len(f.inputs))
+		f.moveFocus(1)
 		return nil, false, false
 	case "shift+tab", "up":
-		f.focusField((f.focus - 1 + len(f.inputs)) % len(f.inputs))
-		return nil, false, false
-	case "ctrl+t":
-		f.ignore = cycleCert(f.ignore)
+		f.moveFocus(-1)
 		return nil, false, false
 	case "enter":
 		if f.complete() {
 			return nil, true, true
 		}
-		f.focusField((f.focus + 1) % len(f.inputs))
+		f.moveFocus(1)
+		return nil, false, false
+	}
+	if f.focus >= len(f.inputs) {
+		switch msg.String() {
+		case " ", "left", "right":
+			f.toggleFocused()
+		}
 		return nil, false, false
 	}
 	var c tea.Cmd
@@ -122,18 +160,34 @@ func (f form) view() string {
 	if f.origName != "" {
 		title = "Edit session"
 	}
-	labels := []string{"name", "user", "host", "domain", "gateway", "size", "drives"}
+	marker := func(i int) string {
+		if f.focus == i {
+			return "› "
+		}
+		return "  "
+	}
 	rows := titleStyle.Render(title) + "\n\n"
 	for i, in := range f.inputs {
-		rows += formLabelStyle.Render(padLabel(labels[i])) + in.View() + "\n"
+		rows += marker(i) + formLabelStyle.Render(padLabel(inputLabels[i])) + in.View() + "\n"
 	}
-	rows += formLabelStyle.Render(padLabel("cert")) + certLabel(f.ignore) + "\n\n"
-	rows += mutedStyle.Render("tab/↑↓ move · ctrl+t toggle cert · enter save · esc cancel")
+	cert := len(f.inputs)
+	rows += marker(cert) + formLabelStyle.Render(padLabel("cert")) + certLabel(f.ignore) + "\n"
+	for i, on := range f.redir {
+		rows += marker(cert+1+i) + formLabelStyle.Render(padLabel(redirLabels[i])) + onOff(on) + "\n"
+	}
+	rows += "\n" + mutedStyle.Render("tab/↑↓ move · space toggle · enter save · esc cancel")
 	return boxStyle.Render(rows)
 }
 
+func onOff(b bool) string {
+	if b {
+		return statusOK.Render("on")
+	}
+	return mutedStyle.Render("off")
+}
+
 func padLabel(s string) string {
-	for len(s) < 7 {
+	for len(s) < 10 {
 		s += " "
 	}
 	return s + " "
