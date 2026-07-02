@@ -148,8 +148,9 @@ A doc or plan that contradicts this file is the bug.
 
 `git push`, `git commit`, `git rebase`, `git reset`, destructive `git checkout`,
 force-push, and merge/tag operations are gated on **explicit approval** (see
-`~/.claude/CLAUDE.md` § Git). Commit messages are one short sentence, no
-`Co-Authored-By` lines. Don't commit unless asked.
+`~/.claude/CLAUDE.md` § Git). Commit messages use semantic prefixes such as
+`feat:`, `fix:`, `docs:`, `refactor:`, `test:`, `build:`, or `chore:` and stay
+to one short sentence. No `Co-Authored-By` lines. Don't commit unless asked.
 
 ---
 
