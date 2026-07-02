@@ -103,13 +103,21 @@ Run:
 rdpkoh
 ```
 
-Old direct-connect style is also supported:
+Launch a saved session by name, without opening the TUI:
+
+```sh
+rdpkoh win11
+rdpkoh win11 --multimon
+```
+
+This uses all of the session's stored properties (drives, size, redirection,
+etc.). An ad-hoc user/host connection is also supported:
 
 ```sh
 rdpkoh administrator 192.168.11.10 --ignore-cert --name tp-test
 ```
 
-That launches a connection directly without opening the TUI. If the password is
+Both launch a connection directly without opening the TUI. If the password is
 not already in the keyring, the app prompts in the terminal and can save it.
 
 Show the installed version:

@@ -14,6 +14,18 @@ import (
 var version = "dev"
 
 func main() {
+	if name, multimon, ok, err := parseNamedArgs(os.Args[1:]); ok {
+		if err != nil {
+			fmt.Fprintln(os.Stderr, "rdpkoh:", err)
+			os.Exit(2)
+		}
+		if err := runNamedConnect(name, multimon); err != nil {
+			fmt.Fprintln(os.Stderr, "rdpkoh:", err)
+			os.Exit(1)
+		}
+		return
+	}
+
 	if direct, ok, err := parseDirectArgs(os.Args[1:]); ok {
 		if err != nil {
 			fmt.Fprintln(os.Stderr, "rdpkoh:", err)

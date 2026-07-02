@@ -7,6 +7,7 @@ import (
 	"os/exec"
 	"strings"
 
+	"rdpkoh/internal/config"
 	"rdpkoh/internal/keyring"
 )
 
@@ -28,6 +29,27 @@ type Options struct {
 	Microphone  bool
 	Printer     bool
 	Smartcard   bool
+}
+
+// OptionsFromSession maps a stored session (plus the raw user/host and a
+// per-launch multimon choice) to launch Options, applying the redirection
+// defaults. Shared by the TUI and the CLI so both build the same command.
+func OptionsFromSession(user, host string, s config.Session, multimon bool) Options {
+	return Options{
+		User:        user,
+		Host:        host,
+		IgnoreCert:  config.BoolOr(s.IgnoreCert, false),
+		Multimon:    multimon,
+		Domain:      s.Domain,
+		Gateway:     s.Gateway,
+		Size:        s.Size,
+		Drives:      s.Drives,
+		NoClipboard: !config.BoolOr(s.Clipboard, true),
+		NoSound:     !config.BoolOr(s.Sound, true),
+		Microphone:  config.BoolOr(s.Microphone, false),
+		Printer:     config.BoolOr(s.Printer, false),
+		Smartcard:   config.BoolOr(s.Smartcard, false),
+	}
 }
 
 // Args returns the xfreerdp3 argument vector, in the same order as the bash

@@ -564,7 +564,6 @@ func (m Model) finishConnect() (tea.Model, tea.Cmd) {
 	m.sessions[m.pend.name] = m.pend.session
 	_ = config.Save(m.sessions)
 
-	ignore := m.pend.session.IgnoreCert != nil && *m.pend.session.IgnoreCert
 	sessionName := m.pend.name
 	lf, err := m.ensureLogFile(sessionName)
 	if err != nil {
@@ -576,21 +575,9 @@ func (m Model) finishConnect() (tea.Model, tea.Cmd) {
 		return m, nil
 	}
 
-	err = rdp.Launch(rdp.Options{
-		User:        m.pend.session.User,
-		Host:        m.pend.session.Host,
-		IgnoreCert:  ignore,
-		Multimon:    m.pend.multimon,
-		Domain:      m.pend.session.Domain,
-		Gateway:     m.pend.session.Gateway,
-		Size:        m.pend.session.Size,
-		Drives:      m.pend.session.Drives,
-		NoClipboard: !config.BoolOr(m.pend.session.Clipboard, true),
-		NoSound:     !config.BoolOr(m.pend.session.Sound, true),
-		Microphone:  config.BoolOr(m.pend.session.Microphone, false),
-		Printer:     config.BoolOr(m.pend.session.Printer, false),
-		Smartcard:   config.BoolOr(m.pend.session.Smartcard, false),
-	}, m.pend.password, lf.path, func(err error) {
+	opts := rdp.OptionsFromSession(
+		m.pend.session.User, m.pend.session.Host, m.pend.session, m.pend.multimon)
+	err = rdp.Launch(opts, m.pend.password, lf.path, func(err error) {
 		m.rdpMsgCh <- rdpDoneMsg{session: sessionName, err: err}
 	})
 
