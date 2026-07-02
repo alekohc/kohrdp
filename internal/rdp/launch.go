@@ -17,6 +17,10 @@ type Options struct {
 	WMClass    string // bare name, e.g. "work"; "" to omit
 	IgnoreCert bool
 	Multimon   bool
+	Domain     string   // /d: ; "" to omit
+	Gateway    string   // /gateway:g: ; "" to omit
+	Size       string   // /size:WxH ; "" to omit
+	Drives     []string // each "name,path"; empty => default Downloads mount
 }
 
 // Args returns the xfreerdp3 argument vector, in the same order as the bash
@@ -27,6 +31,9 @@ func Args(o Options) []string {
 		"/from-stdin",
 		"/v:" + o.Host,
 	}
+	if o.Domain != "" {
+		args = append(args, "/d:"+o.Domain)
+	}
 	if o.WMClass != "" {
 		args = append(args, "/wm-class:rdpkoh-"+o.WMClass)
 	}
@@ -36,12 +43,24 @@ func Args(o Options) []string {
 	if o.IgnoreCert {
 		args = append(args, "/cert:ignore")
 	}
+	if o.Gateway != "" {
+		args = append(args, "/gateway:g:"+o.Gateway)
+	}
+	if o.Size != "" {
+		args = append(args, "/size:"+o.Size)
+	}
 	args = append(args,
 		"+auto-reconnect", "+clipboard", "+fonts",
 		"/sound", "/dynamic-resolution",
 		"/gfx", "/bpp:32",
-		"/drive:Downloads,"+os.Getenv("HOME")+"/Downloads",
 	)
+	if len(o.Drives) > 0 {
+		for _, d := range o.Drives {
+			args = append(args, "/drive:"+d)
+		}
+	} else {
+		args = append(args, "/drive:Downloads,"+os.Getenv("HOME")+"/Downloads")
+	}
 	return args
 }
 

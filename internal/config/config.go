@@ -14,10 +14,14 @@ import (
 // three states survive a round-trip: nil = never asked, &true = ignore,
 // &false = enforce.
 type Session struct {
-	User       string `json:"user"`
-	Host       string `json:"host"`
-	LastUsed   int64  `json:"lastUsed,omitempty"`
-	IgnoreCert *bool  `json:"ignore_cert,omitempty"`
+	User       string   `json:"user"`
+	Host       string   `json:"host"`
+	LastUsed   int64    `json:"lastUsed,omitempty"`
+	IgnoreCert *bool    `json:"ignore_cert,omitempty"`
+	Drives     []string `json:"drives,omitempty"` // each "name,path"
+	Size       string   `json:"size,omitempty"`   // "WxH"
+	Domain     string   `json:"domain,omitempty"`
+	Gateway    string   `json:"gateway,omitempty"`
 }
 
 // Named pairs a session with its map key, for ordered display.

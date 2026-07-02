@@ -323,7 +323,7 @@ func (m Model) updateTable(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m, textinput.Blink
 	case key.Matches(msg, keys.Edit):
 		if n, ok := m.selected(); ok {
-			m.form = editForm(n.Name, n.User, n.Host, n.IgnoreCert)
+			m.form = editForm(n.Name, n.Session)
 			m.state = stateForm
 			return m, textinput.Blink
 		}
@@ -410,6 +410,10 @@ func (m Model) updateForm(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		s.User = m.form.user()
 		s.Host = m.form.host()
 		s.IgnoreCert = m.form.ignore
+		s.Domain = m.form.domain()
+		s.Gateway = m.form.gateway()
+		s.Size = m.form.size()
+		s.Drives = m.form.drives()
 		m.sessions[name] = s
 		if err := config.Save(m.sessions); err != nil {
 			m.setStatus("save failed: "+err.Error(), statusErr)
@@ -563,6 +567,10 @@ func (m Model) finishConnect() (tea.Model, tea.Cmd) {
 		Host:       m.pend.session.Host,
 		IgnoreCert: ignore,
 		Multimon:   m.pend.multimon,
+		Domain:     m.pend.session.Domain,
+		Gateway:    m.pend.session.Gateway,
+		Size:       m.pend.session.Size,
+		Drives:     m.pend.session.Drives,
 	}, m.pend.password, lf.path, func(err error) {
 		m.rdpMsgCh <- rdpDoneMsg{session: sessionName, err: err}
 	})

@@ -188,6 +188,20 @@ Session status values:
 - `exited`: process ended cleanly
 - `failed`: launch failed or the process exited with an error
 
+## Session fields
+
+The new/edit form (`n` / `e`) has required and optional fields:
+
+- `name`, `user`, `host` — required.
+- `domain` — Windows domain (`/d:`).
+- `gateway` — RD Gateway host, optionally `host:port` (`/gateway:g:`).
+- `size` — resolution as `WxH` (e.g. `1920x1080`) or `percent%` (`/size:`).
+- `drives` — space-separated `name,path` mounts (`/drive:`), e.g.
+  `work,/home/you/work media,/mnt/media`. When empty, `~/Downloads` is mounted
+  as before.
+
+Optional fields left blank are simply omitted from the `xfreerdp3` command.
+
 ## Keys
 
 - `enter`: connect

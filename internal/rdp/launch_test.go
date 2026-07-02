@@ -27,6 +27,28 @@ func TestArgsOptionalFlags(t *testing.T) {
 	}
 }
 
+func TestArgsConnectionProps(t *testing.T) {
+	args := Args(Options{
+		User: "u", Host: "h",
+		Domain:  "CORP",
+		Gateway: "gw.corp.com",
+		Size:    "1920x1080",
+		Drives:  []string{"work,/home/u/work", "media,/mnt/media"},
+	})
+	joined := strings.Join(args, " ")
+	for _, want := range []string{
+		"/d:CORP", "/gateway:g:gw.corp.com", "/size:1920x1080",
+		"/drive:work,/home/u/work", "/drive:media,/mnt/media",
+	} {
+		if !strings.Contains(joined, want) {
+			t.Errorf("Args missing %q in: %s", want, joined)
+		}
+	}
+	if strings.Contains(joined, "/drive:Downloads,") {
+		t.Errorf("explicit drives should replace the default Downloads mount: %s", joined)
+	}
+}
+
 func TestDisconnectNoMatch(t *testing.T) {
 	n, err := Disconnect("nobody", "203.0.113.255")
 	if err != nil {
