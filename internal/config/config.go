@@ -1,5 +1,5 @@
 // Package config loads and saves the RDP session list from
-// ~/.config/rdpkoh/sessions.json.
+// ~/.config/kohrdp/sessions.json.
 package config
 
 import (
@@ -47,13 +47,34 @@ type Named struct {
 
 // Path returns the config file location.
 func Path() string {
-	return filepath.Join(os.Getenv("HOME"), ".config", "rdpkoh", "sessions.json")
+	return filepath.Join(os.Getenv("HOME"), ".config", "kohrdp", "sessions.json")
 }
 
 // Load reads the session map. A missing file is an empty map, not an error,
 // matching the bash launcher seeding '{}'.
 func Load() (map[string]Session, error) {
-	return LoadFrom(Path())
+	path := Path()
+	if _, err := os.Stat(path); err == nil {
+		return LoadFrom(path)
+	} else if !os.IsNotExist(err) {
+		return nil, err
+	}
+
+	legacyPath := filepath.Join(os.Getenv("HOME"), ".config", "rdpkoh", "sessions.json")
+	if _, err := os.Stat(legacyPath); os.IsNotExist(err) {
+		return map[string]Session{}, nil
+	} else if err != nil {
+		return nil, err
+	}
+
+	sessions, err := LoadFrom(legacyPath)
+	if err != nil {
+		return nil, err
+	}
+	if err := SaveTo(path, sessions); err != nil {
+		return nil, err
+	}
+	return sessions, nil
 }
 
 func LoadFrom(path string) (map[string]Session, error) {

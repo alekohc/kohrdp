@@ -10,8 +10,8 @@ import (
 	"github.com/charmbracelet/lipgloss"
 	"github.com/muesli/termenv"
 
-	"rdpkoh/internal/config"
-	"rdpkoh/internal/rdp"
+	"kohrdp/internal/config"
+	"kohrdp/internal/rdp"
 )
 
 func pressKey(m Model, r rune) Model {

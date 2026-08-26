@@ -2,6 +2,7 @@ package config
 
 import (
 	"bytes"
+	"os"
 	"path/filepath"
 	"testing"
 )
@@ -46,5 +47,26 @@ func TestSaveWriterAndLoadReaderRoundTrip(t *testing.T) {
 	}
 	if got := out["home"]; got.User != in["home"].User || got.Host != in["home"].Host || got.IgnoreCert == nil || *got.IgnoreCert != false {
 		t.Fatalf("LoadReader() = %#v, want %#v", got, in["home"])
+	}
+}
+
+func TestLoadMigratesLegacyConfig(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	legacyPath := filepath.Join(home, ".config", "rdpkoh", "sessions.json")
+	in := map[string]Session{"work": {User: "admin", Host: "host"}}
+	if err := SaveTo(legacyPath, in); err != nil {
+		t.Fatalf("SaveTo() legacy config error = %v", err)
+	}
+
+	out, err := Load()
+	if err != nil {
+		t.Fatalf("Load() error = %v", err)
+	}
+	if got := out["work"]; got.User != "admin" || got.Host != "host" {
+		t.Fatalf("Load() = %#v, want %#v", out, in)
+	}
+	if _, err := os.Stat(Path()); err != nil {
+		t.Fatalf("migrated config stat error = %v", err)
 	}
 }

@@ -7,7 +7,7 @@ import (
 	"strings"
 	"syscall"
 
-	"rdpkoh/internal/keyring"
+	"kohrdp/internal/keyring"
 )
 
 type liveProc struct {
@@ -96,7 +96,7 @@ func LiveKey(user, host string) string {
 // LogDir is the shared directory holding one log file per session, so any
 // instance can find the log of a session another instance launched.
 func LogDir() string {
-	return filepath.Join(os.TempDir(), "rdpkoh")
+	return filepath.Join(os.TempDir(), "kohrdp")
 }
 
 // LogPath returns the deterministic log file for a session name.

@@ -4,7 +4,7 @@ import (
 	"bufio"
 	"os"
 
-	"rdpkoh/internal/rdp"
+	"kohrdp/internal/rdp"
 )
 
 type sessionLogFile struct {

@@ -8,7 +8,10 @@ import (
 	gokeyring "github.com/zalando/go-keyring"
 )
 
-const service = "rdpkoh"
+const (
+	service       = "kohrdp"
+	legacyService = "rdpkoh"
+)
 
 // MungeUser replicates the bash launcher: if the username has no backslash,
 // prefix ".\". Keyring entries were stored against the munged name, so every
@@ -30,6 +33,16 @@ func Lookup(host, user string) (string, error) {
 	if !errors.Is(err, gokeyring.ErrNotFound) {
 		return "", err
 	}
+	password, err = gokeyring.Get(legacyService, entryName(host, user))
+	if err == nil {
+		if err := gokeyring.Set(service, entryName(host, user), password); err != nil {
+			return "", err
+		}
+		return password, nil
+	}
+	if !errors.Is(err, gokeyring.ErrNotFound) {
+		return "", err
+	}
 	return "", nil
 }
 
@@ -40,9 +53,11 @@ func Store(host, user, password string) error {
 
 // Clear removes the stored password.
 func Clear(host, user string) error {
-	err := gokeyring.Delete(service, entryName(host, user))
-	if err != nil && !errors.Is(err, gokeyring.ErrNotFound) {
-		return err
+	for _, service := range []string{service, legacyService} {
+		err := gokeyring.Delete(service, entryName(host, user))
+		if err != nil && !errors.Is(err, gokeyring.ErrNotFound) {
+			return err
+		}
 	}
 	return nil
 }

@@ -1,4 +1,6 @@
-# Compiled binary (Makefile: BIN := rdpkoh)
+# Compiled binary (Makefile: BIN := kohrdp)
+/kohrdp
+# Legacy binary from before the rename
 /rdpkoh
 
 # Build/release artifacts (make dist-arch, make release-tarball)

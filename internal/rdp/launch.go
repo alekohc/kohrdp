@@ -7,8 +7,8 @@ import (
 	"os/exec"
 	"strings"
 
-	"rdpkoh/internal/config"
-	"rdpkoh/internal/keyring"
+	"kohrdp/internal/config"
+	"kohrdp/internal/keyring"
 )
 
 // Options mirrors the bash launcher's tunable flags.
@@ -64,7 +64,7 @@ func Args(o Options) []string {
 		args = append(args, "/d:"+o.Domain)
 	}
 	if o.WMClass != "" {
-		args = append(args, "/wm-class:rdpkoh-"+o.WMClass)
+		args = append(args, "/wm-class:kohrdp-"+o.WMClass)
 	}
 	if o.Multimon {
 		args = append(args, "/multimon")

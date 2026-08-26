@@ -10,9 +10,9 @@ import (
 
 	"golang.org/x/term"
 
-	"rdpkoh/internal/config"
-	"rdpkoh/internal/keyring"
-	"rdpkoh/internal/rdp"
+	"kohrdp/internal/config"
+	"kohrdp/internal/keyring"
+	"kohrdp/internal/rdp"
 )
 
 type directArgs struct {
@@ -78,7 +78,7 @@ func runDirectConnect(d directArgs) error {
 	return nil
 }
 
-// parseNamedArgs recognises "rdpkoh <name> [--multimon]": a single non-flag
+// parseNamedArgs recognises "kohrdp <name> [--multimon]": a single non-flag
 // argument (optionally followed by flags) that names a saved session to launch.
 // It defers (ok=false) to direct-connect parsing when a second positional
 // argument is present (the user/host form).
