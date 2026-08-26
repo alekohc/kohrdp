@@ -2,11 +2,11 @@ BIN := kohrdp
 PREFIX ?= $(HOME)/.local
 BINDIR ?= $(PREFIX)/bin
 BASE_VERSION := $(shell tr -d '\n' < VERSION)
-VERSION ?= $(shell git describe --tags --exact-match 2>/dev/null || printf $(BASE_VERSION))
+VERSION ?= $(shell tag=$$(git describe --tags --exact-match 2>/dev/null) && printf '%s' "$$tag" | sed 's/^v//' || printf '%s' "$(BASE_VERSION)")
 LDFLAGS := -X main.version=$(VERSION)
 TARBALL ?=
 
-.PHONY: help build install uninstall install-tarball test vet fmt check dist-arch release-tarball
+.PHONY: help build install uninstall install-tarball test vet fmt check dist-arch release-tarball create-release
 
 .DEFAULT_GOAL := help
 
@@ -52,3 +52,13 @@ release-tarball: build ## Build a versioned binary tarball under dist/release/
 	install -m755 "$(BIN)" "dist/release/$(BIN)-$(VERSION)/$(BIN)"
 	install -m644 README.md "dist/release/$(BIN)-$(VERSION)/README.md"
 	tar -czf "dist/release/$(BIN)-$(VERSION)-$(shell go env GOOS)-$(shell go env GOARCH).tar.gz" -C dist/release "$(BIN)-$(VERSION)"
+
+create-release: check release-tarball dist-arch
+
+release: create-release
+	gh release create "v$(VERSION)" \
+  	"dist/release/kohrdp-$(VERSION)-linux-amd64.tar.gz" \
+  	"dist/arch/kohrdp-$(VERSION).tar.gz" \
+  	dist/arch/PKGBUILD \
+  	--title "kohrdp $(VERSION)" \
+  	--generate-notes

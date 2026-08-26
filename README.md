@@ -61,6 +61,7 @@ make fmt
 make check
 make dist-arch
 make release-tarball
+make create-release
 ```
 
 The base app version comes from the `VERSION` file.
@@ -68,12 +69,25 @@ The base app version comes from the `VERSION` file.
 Release/version workflow:
 
 ```sh
-make check
-make release-tarball
+version="$(tr -d '\n' < VERSION)"
+platform="$(go env GOOS)-$(go env GOARCH)"
+make create-release
+git tag "v$version"
+git push origin "v$version"
+gh release create "v$version" \
+  "dist/release/kohrdp-$version-$platform.tar.gz" \
+  "dist/arch/kohrdp-$version.tar.gz" \
+  dist/arch/PKGBUILD \
+  --title "kohrdp v$version" \
+  --generate-notes
 ```
 
-If you are preparing a real release, bump `VERSION` first. Tagged GitHub
-releases should use `vX.Y.Z` tags matching the `VERSION` file.
+Before running these commands, bump `VERSION` and commit the release changes.
+Tagged GitHub releases should use `vX.Y.Z` tags matching the `VERSION` file.
+
+`make create-release` runs the checks and creates both release formats described
+below. Run it before creating the tag so artifact names use the version from
+`VERSION` without the tag's `v` prefix.
 
 `make dist-arch` prepares an Arch `makepkg` directory under `dist/arch/`.
 From there:
