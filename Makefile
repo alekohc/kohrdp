@@ -1,4 +1,4 @@
-BIN := rdpkoh
+BIN := kohrdp
 PREFIX ?= $(HOME)/.local
 BINDIR ?= $(PREFIX)/bin
 BASE_VERSION := $(shell tr -d '\n' < VERSION)
@@ -24,10 +24,10 @@ uninstall: ## Remove the installed binary
 
 install-tarball: ## Install from a built tarball (TARBALL=...)
 	test -n "$(TARBALL)"
-	rm -rf /tmp/rdpkoh-tmp/$(BIN)-install
-	mkdir -p /tmp/rdpkoh-tmp/$(BIN)-install
-	tar -xzf "$(TARBALL)" -C /tmp/rdpkoh-tmp/$(BIN)-install
-	install -Dm755 /tmp/rdpkoh-tmp/$(BIN)-install/$(BIN)-*/$(BIN) "$(BINDIR)/$(BIN)"
+	rm -rf /tmp/kohrdp-tmp/$(BIN)-install
+	mkdir -p /tmp/kohrdp-tmp/$(BIN)-install
+	tar -xzf "$(TARBALL)" -C /tmp/kohrdp-tmp/$(BIN)-install
+	install -Dm755 /tmp/kohrdp-tmp/$(BIN)-install/$(BIN)-*/$(BIN) "$(BINDIR)/$(BIN)"
 
 test: ## Run tests
 	go test ./...

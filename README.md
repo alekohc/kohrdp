@@ -1,4 +1,4 @@
-# rdpkoh
+# kohrdp
 
 Terminal UI for picking and launching RDP sessions with `xfreerdp3`.
 
@@ -35,8 +35,8 @@ Build and packaging prerequisites:
 Build once:
 
 ```sh
-go build -o rdpkoh .
-install -Dm755 rdpkoh "$HOME/.local/bin/rdpkoh"
+go build -o kohrdp .
+install -Dm755 kohrdp "$HOME/.local/bin/kohrdp"
 ```
 
 Or use the Makefile:
@@ -45,7 +45,7 @@ Or use the Makefile:
 make install
 ```
 
-By default that installs to `~/.local/bin/rdpkoh`.
+By default that installs to `~/.local/bin/kohrdp`.
 
 ## Development
 
@@ -92,7 +92,7 @@ build artifact format.
 Install from a release tarball:
 
 ```sh
-make install-tarball TARBALL=dist/release/rdpkoh-<version>-linux-amd64.tar.gz
+make install-tarball TARBALL=dist/release/kohrdp-<version>-linux-amd64.tar.gz
 ```
 
 ## Usage
@@ -100,21 +100,21 @@ make install-tarball TARBALL=dist/release/rdpkoh-<version>-linux-amd64.tar.gz
 Run:
 
 ```sh
-rdpkoh
+kohrdp
 ```
 
 Launch a saved session by name, without opening the TUI:
 
 ```sh
-rdpkoh win11
-rdpkoh win11 --multimon
+kohrdp win11
+kohrdp win11 --multimon
 ```
 
 This uses all of the session's stored properties (drives, size, redirection,
 etc.). An ad-hoc user/host connection is also supported:
 
 ```sh
-rdpkoh administrator 192.168.11.10 --ignore-cert --name tp-test
+kohrdp administrator 192.168.11.10 --ignore-cert --name tp-test
 ```
 
 Both launch a connection directly without opening the TUI. If the password is
@@ -123,31 +123,31 @@ not already in the keyring, the app prompts in the terminal and can save it.
 Show the installed version:
 
 ```sh
-rdpkoh --version
+kohrdp --version
 ```
 
 Export sessions to move them to another machine:
 
 ```sh
-rdpkoh --export sessions.json
+kohrdp --export sessions.json
 ```
 
 Export to stdout:
 
 ```sh
-rdpkoh --export -
+kohrdp --export -
 ```
 
 Import sessions from another machine:
 
 ```sh
-rdpkoh --import sessions.json
+kohrdp --import sessions.json
 ```
 
 Import from stdin:
 
 ```sh
-rdpkoh --import -
+kohrdp --import -
 ```
 
 Import modes:
@@ -158,11 +158,16 @@ Import modes:
 Sessions are loaded from:
 
 ```text
-~/.config/rdpkoh/sessions.json
+~/.config/kohrdp/sessions.json
 ```
 
 Passwords are never stored in that JSON file. Import/export only moves session
 definitions. Passwords stay in the system keyring.
+
+On first run after upgrading from `rdpkoh`, the existing session file is copied
+to the new config location. Saved credentials are migrated within the OS
+keyring as they are used. The installed command is now `kohrdp`; an existing
+`rdpkoh` binary can be removed after installing the renamed application.
 
 The app uses the OS keyring via `go-keyring`.
 
@@ -180,13 +185,13 @@ The table shows:
 
 The right-hand pane shows recent FreeRDP logs for the selected session.
 `xfreerdp3` writes its output straight to a per-session log file under
-`/tmp/rdpkoh/`. On quit, log files are removed for sessions that have ended but
+`/tmp/kohrdp/`. On quit, log files are removed for sessions that have ended but
 kept for sessions still running, so a later launch can pick their logs back up.
 
-Status and logs survive restarting the app: on startup rdpkoh scans for running
+Status and logs survive restarting the app: on startup kohrdp scans for running
 `xfreerdp3` processes and re-attaches to them, marking the matching sessions
 `active` and tailing their logs again. (Sessions launched by an older build that
-did not write to `/tmp/rdpkoh/` show as `active` but without historical logs.)
+did not write to `/tmp/kohrdp/` show as `active` but without historical logs.)
 
 Session status values:
 
@@ -244,7 +249,7 @@ The form also has toggles (navigate with `tab`/`↑↓`, flip with `space`):
 
 ## Notes
 
-- FreeRDP logs are captured to `/tmp/rdpkoh/` and shown in the TUI.
+- FreeRDP logs are captured to `/tmp/kohrdp/` and shown in the TUI.
 - The TUI follows the terminal's ANSI color palette.
 - FreeRDP writes to a log file, not a PTY, so its own native tty-detection
   behavior is not enabled.

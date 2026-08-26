@@ -16,7 +16,7 @@ func (m Model) View() string {
 }
 
 func (m Model) tableView() string {
-	header := titleStyle.Render("rdpkoh") + "  " + mutedStyle.Render("RDP sessions")
+	header := titleStyle.Render("kohrdp") + "  " + mutedStyle.Render("RDP sessions")
 	footer := m.footer()
 
 	return lipgloss.JoinVertical(lipgloss.Left,

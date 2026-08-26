@@ -1,4 +1,4 @@
-# rdpkoh — Constitution & Rules
+# kohrdp — Constitution & Rules
 
 Single source of truth for this repo, for humans and agents alike. Any other
 instruction file (`CLAUDE.md`, `.cursorrules`, `.github/copilot-instructions.md`)
@@ -12,7 +12,7 @@ instruction file (`CLAUDE.md`, `.cursorrules`, `.github/copilot-instructions.md`
 
 ## Preamble
 
-`rdpkoh` is a terminal UI for launching RDP sessions. It handles
+`kohrdp` is a terminal UI for launching RDP sessions. It handles
 **credentials** and spawns a **remote-desktop client**, often from untrusted
 networks. The rules exist so that a momentary convenience never becomes a
 credential leak, and so the tool stays small enough that one person can hold it
@@ -56,8 +56,10 @@ This app is now standalone; it no longer shares data with the old bash launcher.
 It owns its own config, and keeps launch behavior compatible with FreeRDP where
 it matters.
 
-- **Own config file**: `~/.config/rdpkoh/sessions.json`, schema unchanged
+- **Own config file**: `~/.config/kohrdp/sessions.json`, schema unchanged
   (`user`, `host`, `lastUsed`, `ignore_cert`). See [PLAN.md](PLAN.md).
+- Existing config and keyring entries under the former `rdpkoh` name are
+  migrated without writing credentials outside the system keyring.
 - **Same username munge**: prefix `.\` when no `\` is present before passing the
   username to FreeRDP or deriving the keyring entry identity.
 - **Same xfreerdp flags** (see PLAN.md). Changes to the flag set are a deliberate
@@ -127,6 +129,13 @@ Change this file deliberately, not by drive-by edit. An amendment states:
 1. What prompted it (what went wrong, or what we learned).
 2. The new/revised rule in full.
 3. How it interacts with existing articles (extend / narrow / supersede).
+
+Rename amendment (2026-08-26):
+1. The application was renamed to use a clearer, RDP-focused name.
+2. The application, command, config directory, and keyring service are `kohrdp`;
+   existing `rdpkoh` config and keyring entries are migrated.
+3. This supersedes the former name in Article III and leaves the remaining
+   articles unchanged.
 
 ---
 

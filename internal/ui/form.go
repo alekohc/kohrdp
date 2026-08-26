@@ -6,7 +6,7 @@ import (
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 
-	"rdpkoh/internal/config"
+	"kohrdp/internal/config"
 )
 
 // form is the new/edit view: text fields, a cert toggle, and redirection

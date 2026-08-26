@@ -7,8 +7,8 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 
-	"rdpkoh/internal/config"
-	"rdpkoh/internal/ui"
+	"kohrdp/internal/config"
+	"kohrdp/internal/ui"
 )
 
 var version = "dev"
@@ -16,11 +16,11 @@ var version = "dev"
 func main() {
 	if name, multimon, ok, err := parseNamedArgs(os.Args[1:]); ok {
 		if err != nil {
-			fmt.Fprintln(os.Stderr, "rdpkoh:", err)
+			fmt.Fprintln(os.Stderr, "kohrdp:", err)
 			os.Exit(2)
 		}
 		if err := runNamedConnect(name, multimon); err != nil {
-			fmt.Fprintln(os.Stderr, "rdpkoh:", err)
+			fmt.Fprintln(os.Stderr, "kohrdp:", err)
 			os.Exit(1)
 		}
 		return
@@ -28,11 +28,11 @@ func main() {
 
 	if direct, ok, err := parseDirectArgs(os.Args[1:]); ok {
 		if err != nil {
-			fmt.Fprintln(os.Stderr, "rdpkoh:", err)
+			fmt.Fprintln(os.Stderr, "kohrdp:", err)
 			os.Exit(2)
 		}
 		if err := runDirectConnect(direct); err != nil {
-			fmt.Fprintln(os.Stderr, "rdpkoh:", err)
+			fmt.Fprintln(os.Stderr, "kohrdp:", err)
 			os.Exit(1)
 		}
 		return
@@ -48,19 +48,19 @@ func main() {
 		return
 	}
 	if *exportPath != "" && *importPath != "" {
-		fmt.Fprintln(os.Stderr, "rdpkoh: use only one of --export or --import")
+		fmt.Fprintln(os.Stderr, "kohrdp: use only one of --export or --import")
 		os.Exit(2)
 	}
 	if *exportPath != "" {
 		if err := exportConfig(*exportPath); err != nil {
-			fmt.Fprintln(os.Stderr, "rdpkoh: export failed:", err)
+			fmt.Fprintln(os.Stderr, "kohrdp: export failed:", err)
 			os.Exit(1)
 		}
 		return
 	}
 	if *importPath != "" {
 		if err := importSessions(*importPath, *importMode); err != nil {
-			fmt.Fprintln(os.Stderr, "rdpkoh: import failed:", err)
+			fmt.Fprintln(os.Stderr, "kohrdp: import failed:", err)
 			os.Exit(1)
 		}
 		return
@@ -68,7 +68,7 @@ func main() {
 
 	sessions, err := config.Load()
 	if err != nil {
-		fmt.Fprintln(os.Stderr, "rdpkoh: failed to load config:", err)
+		fmt.Fprintln(os.Stderr, "kohrdp: failed to load config:", err)
 		os.Exit(1)
 	}
 
@@ -78,7 +78,7 @@ func main() {
 		m.Cleanup()
 	}
 	if err != nil {
-		fmt.Fprintln(os.Stderr, "rdpkoh:", err)
+		fmt.Fprintln(os.Stderr, "kohrdp:", err)
 		os.Exit(1)
 	}
 }

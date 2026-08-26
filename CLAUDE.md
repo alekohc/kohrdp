@@ -1,4 +1,4 @@
-# rdpkoh
+# kohrdp
 
 A Go TUI for launching RDP sessions.
 

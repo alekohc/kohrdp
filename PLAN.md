@@ -1,4 +1,4 @@
-# Build plan — rdpkoh (Go TUI)
+# Build plan — kohrdp (Go TUI)
 
 A standalone Go TUI for launching RDP sessions. It keeps the
 same JSON session data and FreeRDP launch behavior, while using `go-keyring` for
@@ -18,7 +18,7 @@ connection without opening the TUI.
 ## Repo layout
 
 ```
-rdpkoh/
+kohrdp/
 ├── go.mod
 ├── main.go              # entry: load config, start bubbletea
 ├── internal/
@@ -38,7 +38,12 @@ rdpkoh/
 
 ## Data model
 
-`~/.config/rdpkoh/sessions.json` → `map[string]Session`
+`~/.config/kohrdp/sessions.json` → `map[string]Session`
+
+On first load after the rename, an existing
+`~/.config/rdpkoh/sessions.json` is copied to the new location. Credentials
+found under the former `rdpkoh` keyring service are stored under `kohrdp` when
+they are next used.
 
 ```go
 type Session struct {
@@ -64,7 +69,7 @@ Existing saved session definitions MUST keep working.
    service name using the munged user and host as the entry identity.
 3. **xfreerdp3 invocation** — port verbatim:
    ```
-   /u:<user> /from-stdin /v:<host> [/wm-class:rdpkoh-<class>] [/cert:ignore]
+   /u:<user> /from-stdin /v:<host> [/wm-class:kohrdp-<class>] [/cert:ignore]
    +auto-reconnect +clipboard +fonts /sound /dynamic-resolution
    /gfx /bpp:32 /drive:Downloads,$HOME/Downloads
    ```
@@ -123,15 +128,14 @@ to avoid fighting the renderer. If you must shell out interactively, use
 - `make check`
 - `make release-tarball` for a generic versioned binary tarball
 - `make dist-arch` then `cd dist/arch && makepkg -si` for Arch Linux packaging
-- Or manually: `go build -o rdpkoh .`
-- Install to `~/.local/bin` and keep the command name `rdpkoh` so existing
-  shell usage keeps working.
-- `rdpkoh --export FILE` / `--export -` and `rdpkoh --import FILE`
+- Or manually: `go build -o kohrdp .`
+- Install to `~/.local/bin` with the command name `kohrdp`.
+- `kohrdp --export FILE` / `--export -` and `kohrdp --import FILE`
   / `--import -` move session definitions between machines without exporting
   passwords.
 - `--import-mode replace|merge` controls whether import replaces the current
   config or overlays it.
-- `rdpkoh USER HOST [--ignore-cert] [--name NAME] [--multimon]` launches a
+- `kohrdp USER HOST [--ignore-cert] [--name NAME] [--multimon]` launches a
   direct connection in compatibility mode.
 
 ## Migration / parity checklist
