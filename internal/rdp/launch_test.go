@@ -106,3 +106,18 @@ func TestArgsLAN(t *testing.T) {
 		t.Errorf("LAN off must not change flags: %s", off)
 	}
 }
+
+func TestArgsScale(t *testing.T) {
+	for scale, want := range map[string]string{
+		"140": "/scale:140",
+		"125": "/scale-desktop:125",
+	} {
+		got := strings.Join(Args(Options{User: "u", Host: "h", Scale: scale}), " ")
+		if !strings.Contains(got, want) {
+			t.Errorf("scale %s: missing %q in %s", scale, want, got)
+		}
+	}
+	if got := strings.Join(Args(Options{User: "u", Host: "h"}), " "); strings.Contains(got, "scale") {
+		t.Errorf("empty scale must emit nothing: %s", got)
+	}
+}

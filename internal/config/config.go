@@ -20,6 +20,7 @@ type Session struct {
 	IgnoreCert *bool    `json:"ignore_cert,omitempty"`
 	Drives     []string `json:"drives,omitempty"` // each "name,path"
 	Size       string   `json:"size,omitempty"`   // "WxH"
+	Scale      string   `json:"scale,omitempty"`  // DPI percentage
 	Domain     string   `json:"domain,omitempty"`
 	Gateway    string   `json:"gateway,omitempty"`
 	// Redirection toggles. nil = use the default (clipboard/sound on, the rest

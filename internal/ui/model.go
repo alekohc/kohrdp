@@ -413,6 +413,7 @@ func (m Model) updateForm(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		s.Domain = m.form.domain()
 		s.Gateway = m.form.gateway()
 		s.Size = m.form.size()
+		s.Scale = m.form.scale()
 		s.Drives = m.form.drives()
 		s.Clipboard = togglePtr(m.form.redir[rClipboard], redirDefault[rClipboard])
 		s.Sound = togglePtr(m.form.redir[rSound], redirDefault[rSound])

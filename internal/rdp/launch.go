@@ -21,6 +21,7 @@ type Options struct {
 	Domain     string   // /d: ; "" to omit
 	Gateway    string   // /gateway:g: ; "" to omit
 	Size       string   // /size:WxH ; "" to omit
+	Scale      string   // DPI percentage ; "" to omit
 	Drives     []string // each "name,path"; empty => default Downloads mount
 	// Redirection. Clipboard and sound are on unless disabled; the rest are off
 	// unless enabled — so the zero value keeps the historical behavior.
@@ -44,6 +45,7 @@ func OptionsFromSession(user, host string, s config.Session, multimon bool) Opti
 		Domain:      s.Domain,
 		Gateway:     s.Gateway,
 		Size:        s.Size,
+		Scale:       s.Scale,
 		Drives:      s.Drives,
 		NoClipboard: !config.BoolOr(s.Clipboard, true),
 		NoSound:     !config.BoolOr(s.Sound, true),
@@ -79,6 +81,16 @@ func Args(o Options) []string {
 	}
 	if o.Size != "" {
 		args = append(args, "/size:"+o.Size)
+	}
+	if o.Scale != "" {
+		// /scale: only accepts these three; anything else (125, say) has to go
+		// through /scale-desktop:, which takes any percentage up to 500.
+		switch o.Scale {
+		case "100", "140", "180":
+			args = append(args, "/scale:"+o.Scale)
+		default:
+			args = append(args, "/scale-desktop:"+o.Scale)
+		}
 	}
 	args = append(args, "+auto-reconnect")
 	if o.NoClipboard {
