@@ -28,6 +28,7 @@ const (
 	fDomain
 	fGateway
 	fSize
+	fScale
 	fDrives
 )
 
@@ -37,18 +38,20 @@ const (
 	rMicrophone
 	rPrinter
 	rSmartcard
+	rLAN
 )
 
 var (
-	inputLabels  = []string{"name", "user", "host", "domain", "gateway", "size", "drives"}
-	redirLabels  = []string{"clipboard", "sound", "microphone", "printer", "smartcard"}
-	redirDefault = []bool{true, true, false, false, false}
+	inputLabels  = []string{"name", "user", "host", "domain", "gateway", "size", "scale", "drives"}
+	redirLabels  = []string{"clipboard", "sound", "microphone", "printer", "smartcard", "lan"}
+	redirDefault = []bool{true, true, false, false, false, false}
 )
 
 func newForm() form {
 	placeholders := []string{
 		"name", "user", "host",
 		"domain (optional)", "gateway (optional)", "WxH (optional)",
+		"DPI %, e.g. 125 (optional)",
 		"name,path name,path … (optional)",
 	}
 	f := form{inputs: make([]textinput.Model, len(inputLabels))}
@@ -73,6 +76,7 @@ func editForm(name string, s config.Session) form {
 	f.inputs[fDomain].SetValue(s.Domain)
 	f.inputs[fGateway].SetValue(s.Gateway)
 	f.inputs[fSize].SetValue(s.Size)
+	f.inputs[fScale].SetValue(s.Scale)
 	f.inputs[fDrives].SetValue(strings.Join(s.Drives, " "))
 	f.ignore = s.IgnoreCert
 	f.redir[rClipboard] = config.BoolOr(s.Clipboard, redirDefault[rClipboard])
@@ -80,6 +84,7 @@ func editForm(name string, s config.Session) form {
 	f.redir[rMicrophone] = config.BoolOr(s.Microphone, redirDefault[rMicrophone])
 	f.redir[rPrinter] = config.BoolOr(s.Printer, redirDefault[rPrinter])
 	f.redir[rSmartcard] = config.BoolOr(s.Smartcard, redirDefault[rSmartcard])
+	f.redir[rLAN] = config.BoolOr(s.LAN, redirDefault[rLAN])
 	return f
 }
 
@@ -151,6 +156,7 @@ func (f form) host() string    { return f.inputs[fHost].Value() }
 func (f form) domain() string  { return f.inputs[fDomain].Value() }
 func (f form) gateway() string { return f.inputs[fGateway].Value() }
 func (f form) size() string    { return f.inputs[fSize].Value() }
+func (f form) scale() string   { return f.inputs[fScale].Value() }
 func (f form) drives() []string {
 	return strings.Fields(f.inputs[fDrives].Value())
 }

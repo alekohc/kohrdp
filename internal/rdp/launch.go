@@ -21,6 +21,7 @@ type Options struct {
 	Domain     string   // /d: ; "" to omit
 	Gateway    string   // /gateway:g: ; "" to omit
 	Size       string   // /size:WxH ; "" to omit
+	Scale      string   // DPI percentage ; "" to omit
 	Drives     []string // each "name,path"; empty => default Downloads mount
 	// Redirection. Clipboard and sound are on unless disabled; the rest are off
 	// unless enabled — so the zero value keeps the historical behavior.
@@ -29,6 +30,7 @@ type Options struct {
 	Microphone  bool
 	Printer     bool
 	Smartcard   bool
+	LAN         bool
 }
 
 // OptionsFromSession maps a stored session (plus the raw user/host and a
@@ -43,12 +45,14 @@ func OptionsFromSession(user, host string, s config.Session, multimon bool) Opti
 		Domain:      s.Domain,
 		Gateway:     s.Gateway,
 		Size:        s.Size,
+		Scale:       s.Scale,
 		Drives:      s.Drives,
 		NoClipboard: !config.BoolOr(s.Clipboard, true),
 		NoSound:     !config.BoolOr(s.Sound, true),
 		Microphone:  config.BoolOr(s.Microphone, false),
 		Printer:     config.BoolOr(s.Printer, false),
 		Smartcard:   config.BoolOr(s.Smartcard, false),
+		LAN:         config.BoolOr(s.LAN, false),
 	}
 }
 
@@ -78,6 +82,16 @@ func Args(o Options) []string {
 	if o.Size != "" {
 		args = append(args, "/size:"+o.Size)
 	}
+	if o.Scale != "" {
+		// /scale: only accepts these three; anything else (125, say) has to go
+		// through /scale-desktop:, which takes any percentage up to 500.
+		switch o.Scale {
+		case "100", "140", "180":
+			args = append(args, "/scale:"+o.Scale)
+		default:
+			args = append(args, "/scale-desktop:"+o.Scale)
+		}
+	}
 	args = append(args, "+auto-reconnect")
 	if o.NoClipboard {
 		args = append(args, "-clipboard")
@@ -88,7 +102,15 @@ func Args(o Options) []string {
 	if !o.NoSound {
 		args = append(args, "/sound")
 	}
-	args = append(args, "/dynamic-resolution", "/gfx", "/bpp:32")
+	args = append(args, "/dynamic-resolution")
+	if o.LAN {
+		// H.264 subsamples chroma, which smears text; on a LAN the bandwidth
+		// it saves is not worth the blur.
+		args = append(args, "/network:lan", "/gfx:AVC420:off,AVC444:off")
+	} else {
+		args = append(args, "/gfx")
+	}
+	args = append(args, "/bpp:32")
 	if o.Microphone {
 		args = append(args, "/microphone")
 	}

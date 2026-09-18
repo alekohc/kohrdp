@@ -20,6 +20,7 @@ type Session struct {
 	IgnoreCert *bool    `json:"ignore_cert,omitempty"`
 	Drives     []string `json:"drives,omitempty"` // each "name,path"
 	Size       string   `json:"size,omitempty"`   // "WxH"
+	Scale      string   `json:"scale,omitempty"`  // DPI percentage
 	Domain     string   `json:"domain,omitempty"`
 	Gateway    string   `json:"gateway,omitempty"`
 	// Redirection toggles. nil = use the default (clipboard/sound on, the rest
@@ -29,6 +30,9 @@ type Session struct {
 	Microphone *bool `json:"microphone,omitempty"`
 	Printer    *bool `json:"printer,omitempty"`
 	Smartcard  *bool `json:"smartcard,omitempty"`
+	// LAN trades bandwidth for image quality: lossless codec and no network
+	// auto-tuning. nil = off, so existing sessions are unchanged.
+	LAN *bool `json:"lan,omitempty"`
 }
 
 // BoolOr resolves an optional flag to its effective value.

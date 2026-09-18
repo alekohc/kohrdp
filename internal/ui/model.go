@@ -413,12 +413,14 @@ func (m Model) updateForm(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		s.Domain = m.form.domain()
 		s.Gateway = m.form.gateway()
 		s.Size = m.form.size()
+		s.Scale = m.form.scale()
 		s.Drives = m.form.drives()
 		s.Clipboard = togglePtr(m.form.redir[rClipboard], redirDefault[rClipboard])
 		s.Sound = togglePtr(m.form.redir[rSound], redirDefault[rSound])
 		s.Microphone = togglePtr(m.form.redir[rMicrophone], redirDefault[rMicrophone])
 		s.Printer = togglePtr(m.form.redir[rPrinter], redirDefault[rPrinter])
 		s.Smartcard = togglePtr(m.form.redir[rSmartcard], redirDefault[rSmartcard])
+		s.LAN = togglePtr(m.form.redir[rLAN], redirDefault[rLAN])
 		m.sessions[name] = s
 		if err := config.Save(m.sessions); err != nil {
 			m.setStatus("save failed: "+err.Error(), statusErr)

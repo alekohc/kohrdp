@@ -223,11 +223,29 @@ The new/edit form (`n` / `e`) has required and optional fields:
 - `domain` — Windows domain (`/d:`).
 - `gateway` — RD Gateway host, optionally `host:port` (`/gateway:g:`).
 - `size` — resolution as `WxH` (e.g. `1920x1080`) or `percent%` (`/size:`).
+- `scale` — DPI percentage the remote desktop renders at, so a 4K session is
+  legible without blurring the image. `100`, `140` and `180` use `/scale:`;
+  any other value (e.g. `125`) uses `/scale-desktop:`, which accepts 100-500.
 - `drives` — space-separated `name,path` mounts (`/drive:`), e.g.
   `work,/home/you/work media,/mnt/media`. When empty, `~/Downloads` is mounted
   as before.
 
 Optional text fields left blank are simply omitted from the `xfreerdp3` command.
+
+Every session also gets this base set, regardless of the fields above:
+
+```
+/from-stdin          password over stdin, never /p: (which would leak into ps)
++auto-reconnect      resume automatically after a dropped link
++fonts               font smoothing
+/dynamic-resolution  the remote desktop follows the window as you resize it
+/gfx /bpp:32         graphics pipeline at 32-bit colour
+```
+
+The `lan` toggle below replaces `/gfx` with a lossless codec selection.
+
+Connecting with `m` instead of `enter` adds `/multimon` for that launch only; it
+is not stored on the session.
 
 The form also has toggles (navigate with `tab`/`↑↓`, flip with `space`):
 
@@ -237,6 +255,11 @@ The form also has toggles (navigate with `tab`/`↑↓`, flip with `space`):
 - `microphone` — off by default (`/microphone`).
 - `printer` — off by default (`/printer`).
 - `smartcard` — off by default (`/smartcard`).
+- `lan` — off by default. On, the session is encoded for a fast link:
+  `/network:lan` skips connection auto-tuning and
+  `/gfx:AVC420:off,AVC444:off` drops H.264 in favour of a codec that does not
+  subsample chroma, so text stays sharp. Costs bandwidth; leave it off over a
+  gateway or VPN.
 
 ## Keys
 
