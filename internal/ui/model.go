@@ -419,6 +419,7 @@ func (m Model) updateForm(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		s.Microphone = togglePtr(m.form.redir[rMicrophone], redirDefault[rMicrophone])
 		s.Printer = togglePtr(m.form.redir[rPrinter], redirDefault[rPrinter])
 		s.Smartcard = togglePtr(m.form.redir[rSmartcard], redirDefault[rSmartcard])
+		s.LAN = togglePtr(m.form.redir[rLAN], redirDefault[rLAN])
 		m.sessions[name] = s
 		if err := config.Save(m.sessions); err != nil {
 			m.setStatus("save failed: "+err.Error(), statusErr)

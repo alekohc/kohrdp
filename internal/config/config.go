@@ -29,6 +29,9 @@ type Session struct {
 	Microphone *bool `json:"microphone,omitempty"`
 	Printer    *bool `json:"printer,omitempty"`
 	Smartcard  *bool `json:"smartcard,omitempty"`
+	// LAN trades bandwidth for image quality: lossless codec and no network
+	// auto-tuning. nil = off, so existing sessions are unchanged.
+	LAN *bool `json:"lan,omitempty"`
 }
 
 // BoolOr resolves an optional flag to its effective value.

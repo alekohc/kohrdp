@@ -37,12 +37,13 @@ const (
 	rMicrophone
 	rPrinter
 	rSmartcard
+	rLAN
 )
 
 var (
 	inputLabels  = []string{"name", "user", "host", "domain", "gateway", "size", "drives"}
-	redirLabels  = []string{"clipboard", "sound", "microphone", "printer", "smartcard"}
-	redirDefault = []bool{true, true, false, false, false}
+	redirLabels  = []string{"clipboard", "sound", "microphone", "printer", "smartcard", "lan"}
+	redirDefault = []bool{true, true, false, false, false, false}
 )
 
 func newForm() form {
@@ -80,6 +81,7 @@ func editForm(name string, s config.Session) form {
 	f.redir[rMicrophone] = config.BoolOr(s.Microphone, redirDefault[rMicrophone])
 	f.redir[rPrinter] = config.BoolOr(s.Printer, redirDefault[rPrinter])
 	f.redir[rSmartcard] = config.BoolOr(s.Smartcard, redirDefault[rSmartcard])
+	f.redir[rLAN] = config.BoolOr(s.LAN, redirDefault[rLAN])
 	return f
 }
 

@@ -237,6 +237,11 @@ The form also has toggles (navigate with `tab`/`↑↓`, flip with `space`):
 - `microphone` — off by default (`/microphone`).
 - `printer` — off by default (`/printer`).
 - `smartcard` — off by default (`/smartcard`).
+- `lan` — off by default. On, the session is encoded for a fast link:
+  `/network:lan` skips connection auto-tuning and
+  `/gfx:AVC420:off,AVC444:off` drops H.264 in favour of a codec that does not
+  subsample chroma, so text stays sharp. Costs bandwidth; leave it off over a
+  gateway or VPN.
 
 ## Keys
 

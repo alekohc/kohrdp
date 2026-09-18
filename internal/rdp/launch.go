@@ -29,6 +29,7 @@ type Options struct {
 	Microphone  bool
 	Printer     bool
 	Smartcard   bool
+	LAN         bool
 }
 
 // OptionsFromSession maps a stored session (plus the raw user/host and a
@@ -49,6 +50,7 @@ func OptionsFromSession(user, host string, s config.Session, multimon bool) Opti
 		Microphone:  config.BoolOr(s.Microphone, false),
 		Printer:     config.BoolOr(s.Printer, false),
 		Smartcard:   config.BoolOr(s.Smartcard, false),
+		LAN:         config.BoolOr(s.LAN, false),
 	}
 }
 
@@ -88,7 +90,15 @@ func Args(o Options) []string {
 	if !o.NoSound {
 		args = append(args, "/sound")
 	}
-	args = append(args, "/dynamic-resolution", "/gfx", "/bpp:32")
+	args = append(args, "/dynamic-resolution")
+	if o.LAN {
+		// H.264 subsamples chroma, which smears text; on a LAN the bandwidth
+		// it saves is not worth the blur.
+		args = append(args, "/network:lan", "/gfx:AVC420:off,AVC444:off")
+	} else {
+		args = append(args, "/gfx")
+	}
+	args = append(args, "/bpp:32")
 	if o.Microphone {
 		args = append(args, "/microphone")
 	}
