@@ -60,8 +60,10 @@ it matters.
   (`user`, `host`, `lastUsed`, `ignore_cert`). See [PLAN.md](PLAN.md).
 - Existing config and keyring entries under the former `rdpkoh` name are
   migrated without writing credentials outside the system keyring.
-- **Same username munge**: prefix `.\` when no `\` is present before passing the
-  username to FreeRDP or deriving the keyring entry identity.
+- **Username munge**: prefix `.\` when no `\` is present and the domain field
+  is empty before passing the username to FreeRDP. With a domain configured,
+  pass the username unchanged. Keyring entry identity still prefixes `.\`
+  when no `\` is present, preserving existing stored credentials.
 - **Same xfreerdp flags** (see PLAN.md). Changes to the flag set are a deliberate
   decision, noted in the commit.
 
@@ -138,6 +140,15 @@ Rename amendment (2026-08-26):
    articles unchanged.
 
 ---
+
+Domain-login amendment (2026-10-07):
+1. A configured domain was combined with an automatic local-account prefix,
+   preventing domain logins that worked in Remmina.
+2. Prefix `.\` for FreeRDP only when the username contains no `\` and the
+   domain field is empty. With a domain configured, pass the username unchanged.
+   Keyring identity continues to prefix `.\` for usernames without `\`.
+3. This narrows Article III's launch-time username rule; credential storage and
+   all other articles remain unchanged.
 
 ## Precedence
 

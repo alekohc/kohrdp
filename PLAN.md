@@ -63,8 +63,9 @@ type Session struct {
 
 Existing saved session definitions MUST keep working.
 
-1. **Username munge** — replicate `if user has no '\\', prefix '.\\'` before any
-   keyring lookup or `/u:`.
+1. **Username munge** — keep `if user has no '\\', prefix '.\\'` for keyring
+   identity. For `/u:`, apply that prefix only when the domain field is empty;
+   a configured domain passes the username unchanged alongside `/d:<domain>`.
 2. **Keyring identity** — passwords are stored under the app's own keyring
    service name using the munged user and host as the entry identity.
 3. **xfreerdp3 invocation** — port verbatim:

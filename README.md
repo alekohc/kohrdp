@@ -221,6 +221,9 @@ The new/edit form (`n` / `e`) has required and optional fields:
 
 - `name`, `user`, `host` — required.
 - `domain` — Windows domain (`/d:`).
+- With a domain set, bare usernames are passed unchanged. Without a domain,
+  bare usernames get the local-account prefix `.\`. Explicit `DOMAIN\user`
+  usernames are always preserved. Existing keyring identities are unchanged.
 - `gateway` — RD Gateway host, optionally `host:port` (`/gateway:g:`).
 - `size` — resolution as `WxH` (e.g. `1920x1080`) or `percent%` (`/size:`).
 - `scale` — DPI percentage the remote desktop renders at, so a 4K session is

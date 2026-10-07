@@ -27,6 +27,36 @@ func TestArgsOptionalFlags(t *testing.T) {
 	}
 }
 
+func TestArgsUsernameDomain(t *testing.T) {
+	for _, tt := range []struct {
+		name, user, domain, want string
+	}{
+		{"local", "admin", "", `/u:.\admin`},
+		{"domain", "administratör", "norrlands.com", "/u:administratör"},
+		{"qualified", `NORRLANDS\administratör`, "", `/u:NORRLANDS\administratör`},
+		{"qualified with domain", `NORRLANDS\administratör`, "norrlands.com", `/u:NORRLANDS\administratör`},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			args := Args(Options{User: tt.user, Host: "h", Domain: tt.domain})
+			if args[0] != tt.want {
+				t.Errorf("username argument = %q, want %q", args[0], tt.want)
+			}
+			var domain string
+			for _, arg := range args {
+				if strings.HasPrefix(arg, "/d:") {
+					domain = strings.TrimPrefix(arg, "/d:")
+				}
+			}
+			if domain != tt.domain {
+				t.Errorf("domain = %q, want %q", domain, tt.domain)
+			}
+			if got := LiveKey(strings.TrimPrefix(args[0], "/u:"), "h"); got != LiveKey(tt.user, "h") {
+				t.Errorf("launched username does not match saved session: %q", got)
+			}
+		})
+	}
+}
+
 func TestArgsConnectionProps(t *testing.T) {
 	args := Args(Options{
 		User: "u", Host: "h",

@@ -49,7 +49,7 @@ func scanLive() []liveProc {
 			}
 		}
 		if host != "" {
-			procs = append(procs, liveProc{pid: pid, key: user + "\x00" + host})
+			procs = append(procs, liveProc{pid: pid, key: LiveKey(user, host)})
 		}
 	}
 	return procs
@@ -88,7 +88,7 @@ func Disconnect(user, host string) (int, error) {
 }
 
 // LiveKey builds the Live lookup key for a session from its raw user and host,
-// applying the same username munge used when launching.
+// normalizing bare usernames to keep domain launches matched to saved sessions.
 func LiveKey(user, host string) string {
 	return keyring.MungeUser(user) + "\x00" + host
 }
