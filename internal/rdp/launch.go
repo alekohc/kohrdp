@@ -13,7 +13,7 @@ import (
 
 // Options mirrors the bash launcher's tunable flags.
 type Options struct {
-	User       string // raw username; munged here for /u:
+	User       string // raw username; defaults to local account only without Domain
 	Host       string
 	WMClass    string // bare name, e.g. "work"; "" to omit
 	IgnoreCert bool
@@ -59,8 +59,12 @@ func OptionsFromSession(user, host string, s config.Session, multimon bool) Opti
 // Args returns the xfreerdp3 argument vector, in the same order as the bash
 // launcher. Exposed for testing so the flag set can be asserted without a spawn.
 func Args(o Options) []string {
+	user := o.User
+	if o.Domain == "" {
+		user = keyring.MungeUser(user)
+	}
 	args := []string{
-		"/u:" + keyring.MungeUser(o.User),
+		"/u:" + user,
 		"/from-stdin",
 		"/v:" + o.Host,
 	}
